@@ -225,7 +225,6 @@ async function loadFigures(){
       ? data.imageUrl
       : "https://via.placeholder.com/600x400?text=No+Image";
 
-    // カード作成
     const card = document.createElement("div");
     card.className = "card";
 
@@ -241,12 +240,13 @@ async function loadFigures(){
     const delBtn = document.createElement("button");
     delBtn.className = "deleteBtn";
     delBtn.textContent = "削除";
-    // 🔹 確実に動作するイベントリスナー
-    delBtn.addEventListener("click", async () => {
+    // 🔹 dataset に docId を保持して確実に削除
+    delBtn.dataset.docId = docId;
+    delBtn.addEventListener("click", async (e) => {
       try {
         if(!confirm("本当に削除しますか？")) return;
-        const docRef = doc(db, "figures", docId);
-        await deleteDoc(docRef);
+        const id = e.currentTarget.dataset.docId;
+        await deleteDoc(doc(db, "figures", id));
         loadFigures();
       } catch (error) {
         console.error("削除エラー:", error);
