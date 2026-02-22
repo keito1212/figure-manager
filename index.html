@@ -210,7 +210,7 @@ window.addFigure = async function(){
 
 // --- フィギュア一覧読み込み ---
 async function loadFigures(){
-  const q = query(collection(db, "figures"), where("uid", "==", currentUser.uid));
+  const q = query(collection(db, "figures"));
   const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
   list.innerHTML = "";
@@ -244,6 +244,7 @@ async function loadFigures(){
     delBtn.dataset.docId = docId;
     delBtn.addEventListener("click", async (e) => {
       try {
+        console.log("削除対象docId:", e.currentTarget.dataset.docId);
         if(!confirm("本当に削除しますか？")) return;
         const id = e.currentTarget.dataset.docId;
         await deleteDoc(doc(db, "figures", id));
