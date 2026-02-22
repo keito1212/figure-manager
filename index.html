@@ -175,18 +175,23 @@ async function loadFigures(){
   const list=document.getElementById("figureList");
   list.innerHTML="";
   let items=[], total=0;
+
   querySnapshot.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid!==currentUser.uid) return;
-    items.push({id:docSnap.id,...data});
+    items.push({
+      id: docSnap.id,
+      ...data,
+      createdAt: data.createdAt.toDate ? data.createdAt.toDate() : new Date(data.createdAt)
+    });
   });
 
   items.sort((a,b)=>{
     if(sort==="name") return a.name.localeCompare(b.name);
     if(sort==="priceHigh") return b.price-a.price;
     if(sort==="priceLow") return a.price-b.price;
-    if(sort==="newest") return b.createdAt.toMillis()-a.createdAt.toMillis();
-    if(sort==="oldest") return a.createdAt.toMillis()-b.createdAt.toMillis();
+    if(sort==="newest") return b.createdAt-a.createdAt;
+    if(sort==="oldest") return a.createdAt-b.createdAt;
     return 0;
   });
 
@@ -197,11 +202,12 @@ async function loadFigures(){
     const img=document.createElement("img"); img.src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
     const title=document.createElement("div"); title.innerHTML=`<strong>${data.name}</strong>`;
     const price=document.createElement("div"); price.textContent=`¥${data.price.toLocaleString()}`;
-    if(data.brand) { const brand=document.createElement("div"); brand.textContent=data.brand; card.appendChild(brand); }
+    if(data.brand){ const brand=document.createElement("div"); brand.textContent=data.brand; card.appendChild(brand); }
     card.appendChild(img); card.appendChild(title); card.appendChild(price);
     card.onclick=()=>showModal(data.id,data);
     list.appendChild(card);
   });
+
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
 }
 
