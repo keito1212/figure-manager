@@ -84,7 +84,6 @@ button{
 .deleteBtn:hover{
   background:#c0392b;
 }
-
 </style>
 </head>
 
@@ -117,12 +116,13 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, getDocs, query, where, doc, deleteDoc 
+  getFirestore, collection, addDoc, getDocs, query, doc, deleteDoc
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { 
   getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
+// 🔹 Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
   authDomain: "figure-manager-ee77e.firebaseapp.com",
@@ -188,9 +188,9 @@ window.addFigure = async function(){
   }
 
   // Gyazo URL 自動変換
-  if(imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/)) {
-    const match = imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/);
-    imageUrl = `https://i.gyazo.com/${match[1]}.png`;
+  const gyazoMatch = imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/);
+  if(gyazoMatch) {
+    imageUrl = `https://i.gyazo.com/${gyazoMatch[1]}.png`;
   }
 
   await addDoc(collection(db, "figures"), {
@@ -219,12 +219,15 @@ async function loadFigures(){
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
     const docId = docSnap.id;
+    console.log("読み込みdocId:", docId); // 🔹 デバッグ
+
     total += data.price;
 
     const imageSrc = data.imageUrl && data.imageUrl !== ""
       ? data.imageUrl
       : "https://via.placeholder.com/600x400?text=No+Image";
 
+    // カード生成
     const card = document.createElement("div");
     card.className = "card";
 
@@ -240,13 +243,12 @@ async function loadFigures(){
     const delBtn = document.createElement("button");
     delBtn.className = "deleteBtn";
     delBtn.textContent = "削除";
-    // 🔹 dataset に docId を保持して確実に削除
     delBtn.dataset.docId = docId;
     delBtn.addEventListener("click", async (e) => {
       try {
-        console.log("削除対象docId:", e.currentTarget.dataset.docId);
-        if(!confirm("本当に削除しますか？")) return;
         const id = e.currentTarget.dataset.docId;
+        console.log("削除対象docId:", id); // 🔹 デバッグ
+        if(!confirm("本当に削除しますか？")) return;
         await deleteDoc(doc(db, "figures", id));
         loadFigures();
       } catch (error) {
