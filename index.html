@@ -14,6 +14,8 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 #figureList{display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;}
 .card{background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;}
 .card img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px;}
+.marketPrice{margin-top:6px; font-size:13px; color:#2c3e50; text-align:center;}
+.marketDiff{font-size:12px; color:#7f8c8d;}
 /* モーダル */
 .modal{display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.5);}
 .modalContent{background:white; margin:50px auto; padding:20px; border-radius:8px; max-width:500px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
@@ -39,85 +41,7 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
   <div id="loginArea">
     <button onclick="login()">Googleログイン</button>
   </div>
-
-  <div id="appArea" style="display:none;">
-    <!-- 商品追加フォーム -->
-    <input id="name" placeholder="商品名">
-    <input id="price" type="number" placeholder="価格" step="100">
-    <input id="imageUrl" placeholder="画像URL（任意）">
-
-    <select id="brand">
-      <option value="">未選択</option>
-      <option>グッドスマイルカンパニー</option>
-      <option>アルター</option>
-      <option>コトブキヤ</option>
-      <option>マックスファクトリー</option>
-      <option>バンダイ</option>
-      <option>メガハウス</option>
-      <option>ホビージャパン</option>
-      <option>タカラトミー</option>
-      <option>フリーイング</option>
-      <option>アニプレックス</option>
-      <option>ホビーラウンジ</option>
-      <option>ファット・カンパニー</option>
-      <option>セガプライズ</option>
-      <option>リボルブ</option>
-      <option>オーキッドシード</option>
-      <option>アイリス・オーヤマ</option>
-      <option>カプコン</option>
-      <option>バンプレスト</option>
-      <option>コナミ</option>
-      <option>アゾンインターナショナル</option>
-    </select>
-
-    <input id="purchaseDate" type="date" placeholder="購入日">
-
-    <select id="purchasePlace">
-      <option value="">未選択</option>
-      <option>Amazon</option>
-      <option>楽天市場</option>
-      <option>Yahoo!ショッピング</option>
-      <option>メルカリ</option>
-      <option>ヤフオク</option>
-      <option>ヤフーフリマ</option>
-      <option>あみあみ</option>
-      <option>フィギュア専門店</option>
-      <option>ホビーショップ</option>
-      <option>トイザらス</option>
-      <option>ソフマップ</option>
-      <option>イベント・ワンフェス</option>
-      <option>海外通販</option>
-      <option>リサイクルショップ</option>
-    </select>
-
-    <select id="status">
-      <option value="owned">所持</option>
-      <option value="unowned">未所持</option>
-      <option value="sold">売却済み</option>
-    </select>
-
-    <button class="addBtn" onclick="addFigure()">追加</button>
-
-    <h3 id="totalValue">合計: ¥0</h3>
-
-    <div class="sortSelect">
-      <select id="sortSelect">
-        <option value="name">名前順（昇順）</option>
-        <option value="priceDesc">価格順（高い→低い）</option>
-        <option value="priceAsc">価格順（低い→高い）</option>
-        <option value="newest">登録順（新しい→古い）</option>
-        <option value="oldest">登録順（古い→新しい）</option>
-      </select>
-    </div>
-
-    <div class="statusFilters">
-      <label><input type="checkbox" id="filterOwned" checked>所持</label>
-      <label><input type="checkbox" id="filterUnowned" checked>未所持</label>
-      <label><input type="checkbox" id="filterSold" checked>売却済み</label>
-    </div>
-
-    <div id="figureList"></div>
-  </div>
+@@ -121,50 +123,52 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 </div>
 
 <!-- モーダル -->
@@ -143,6 +67,8 @@ const provider = new GoogleAuthProvider();
 let currentUser = null;
 const brandOptions=[...document.getElementById("brand").options].map(o=>o.value).filter(v=>v);
 const placeOptions=[...document.getElementById("purchasePlace").options].map(o=>o.value).filter(v=>v);
+const marketCache = new Map();
+let usdToJpyRate = null;
 
 const modal = document.getElementById("figureModal");
 const modalClose = document.getElementById("modalClose");
@@ -168,35 +94,7 @@ onAuthStateChanged(auth, user=>{
 });
 
 window.addFigure=async()=>{
-  const name=document.getElementById("name").value.trim();
-  const price=Number(document.getElementById("price").value);
-  const imageUrl=document.getElementById("imageUrl").value.trim();
-  const brand=document.getElementById("brand").value;
-  const purchaseDate=document.getElementById("purchaseDate").value;
-  const purchasePlace=document.getElementById("purchasePlace").value;
-  const status=document.getElementById("status").value;
-  if(!name||!price){ alert("商品名と価格を入力してください"); return; }
-  await addDoc(collection(db,"figures"),{ uid:currentUser.uid, name, price, imageUrl, brand, purchaseDate, purchasePlace, status, createdAt:new Date() });
-  document.getElementById("name").value=""; document.getElementById("price").value=""; document.getElementById("imageUrl").value="";
-  loadFigures();
-}
-
-// 並べ替え・フィルター変更時もリアルタイム
-document.getElementById("sortSelect").addEventListener("change", loadFigures);
-document.getElementById("filterOwned").addEventListener("change", loadFigures);
-document.getElementById("filterUnowned").addEventListener("change", loadFigures);
-document.getElementById("filterSold").addEventListener("change", loadFigures);
-
-async function loadFigures(){
-  const querySnapshot = await getDocs(collection(db,"figures"));
-  const list = document.getElementById("figureList");
-  list.innerHTML="";
-  let total=0;
-  const figures = [];
-  querySnapshot.forEach(docSnap=>{
-    const data=docSnap.data();
-    if(data.uid!==currentUser.uid) return;
-    figures.push({...data, id:docSnap.id});
+@@ -200,64 +204,127 @@ async function loadFigures(){
   });
 
   // 状態フィルター
@@ -223,17 +121,82 @@ async function loadFigures(){
   });
 
   filtered.forEach(f=>{
+  const marketPriceResults = await Promise.all(filtered.map(f=>getMarketPrice(f.name)));
+
+  filtered.forEach((f, index)=>{
     total+=f.price;
     const card=document.createElement("div"); card.className="card";
     const img=document.createElement("img"); img.src=f.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
     const title=document.createElement("div"); title.innerHTML=`<strong>${f.name}</strong>`;
     const price=document.createElement("div"); price.textContent=`¥${f.price.toLocaleString()}`;
     card.appendChild(img); card.appendChild(title); card.appendChild(price);
+    const marketInfo = document.createElement("div");
+    marketInfo.className = "marketPrice";
+    const marketResult = marketPriceResults[index];
+    if(marketResult){
+      const diff = marketResult.price - f.price;
+      const diffLabel = diff>=0 ? `+¥${diff.toLocaleString()}` : `-¥${Math.abs(diff).toLocaleString()}`;
+      marketInfo.innerHTML = `
+        <div>相場目安: ¥${marketResult.price.toLocaleString()}</div>
+        <div class="marketDiff">購入価格との差: ${diffLabel}</div>
+      `;
+    }else{
+      marketInfo.textContent = "相場情報なし";
+    }
+    card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketInfo);
     card.onclick=()=>openModal(f);
     list.appendChild(card);
   });
 
   document.getElementById("totalValue").innerText="合計: ¥"+total.toLocaleString();
+}
+
+async function getUsdToJpyRate(){
+  if(usdToJpyRate) return usdToJpyRate;
+  try{
+    const res = await fetch("https://open.er-api.com/v6/latest/USD");
+    if(!res.ok) throw new Error("rate fetch failed");
+    const data = await res.json();
+    if(data?.rates?.JPY){
+      usdToJpyRate = data.rates.JPY;
+      return usdToJpyRate;
+    }
+  }catch(_e){ }
+
+  usdToJpyRate = 150;
+  return usdToJpyRate;
+}
+
+async function getMarketPrice(name){
+  if(marketCache.has(name)) return marketCache.get(name);
+  try{
+    const rate = await getUsdToJpyRate();
+    const res = await fetch(`https://dummyjson.com/products/search?q=${encodeURIComponent(name)}`);
+    if(!res.ok) throw new Error("market search failed");
+    const data = await res.json();
+    if(!Array.isArray(data.products) || data.products.length===0){
+      marketCache.set(name, null);
+      return null;
+    }
+
+    const prices = data.products
+      .map(p=>Number(p.price))
+      .filter(p=>Number.isFinite(p) && p>0)
+      .slice(0,5);
+    if(prices.length===0){
+      marketCache.set(name, null);
+      return null;
+    }
+
+    const avgUsd = prices.reduce((sum,p)=>sum+p,0) / prices.length;
+    const price = Math.round(avgUsd * rate);
+    const marketData = { price };
+    marketCache.set(name, marketData);
+    return marketData;
+  }catch(_e){
+    marketCache.set(name, null);
+    return null;
+  }
 }
 
 // モーダル
@@ -260,30 +223,3 @@ function openModal(f){
       <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
     </div>
   `;
-
-  document.getElementById("modalUpdate").onclick=async ()=>{
-    const name=document.getElementById("modalName").value.trim();
-    const price=Number(document.getElementById("modalPrice").value);
-    const imageUrl=document.getElementById("modalImage").value.trim();
-    const brand=document.getElementById("modalBrand").value;
-    const purchaseDate=document.getElementById("modalDate").value;
-    const purchasePlace=document.getElementById("modalPlace").value;
-    const status=document.getElementById("modalStatus").value;
-    if(!name||!price){ alert("商品名と価格を入力してください"); return; }
-    await updateDoc(doc(db,"figures",f.id),{ name, price, imageUrl, brand, purchaseDate, purchasePlace, status });
-    modal.style.display="none";
-    loadFigures();
-  }
-
-  document.getElementById("modalDelete").onclick=async ()=>{
-    if(confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",f.id)); modal.style.display="none"; loadFigures(); }
-  }
-}
-
-// モーダル閉じる
-modalClose.onclick=()=>{ modal.style.display="none"; }
-window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
-
-</script>
-</body>
-</html>
