@@ -332,4 +332,43 @@ async function loadFigures(){
 // モーダル
 function showModal(id,data){
   pendingId=id;
-  document.getElementById("modalName
+  document.getElementById("modalName").value=data.name;
+  document.getElementById("modalPrice").value=data.price;
+  document.getElementById("modalImageUrl").value=data.imageUrl;
+  document.getElementById("modalBrand").value=data.brand||"";
+  document.getElementById("modalPurchaseDate").value=data.purchaseDate||"";
+  document.getElementById("modalPurchasePlace").value=data.purchasePlace||"";
+  document.getElementById("modalStatus").value=data.status;
+  document.getElementById("modalImage").src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
+  document.getElementById("detailModal").style.display="flex";
+}
+
+// 更新ボタン
+document.getElementById("updateBtn").onclick=async ()=>{
+  if(!pendingId) return;
+  const data={
+    name: document.getElementById("modalName").value.trim(),
+    price:Number(document.getElementById("modalPrice").value),
+    imageUrl: document.getElementById("modalImageUrl").value.trim(),
+    brand: document.getElementById("modalBrand").value.trim(),
+    purchaseDate: document.getElementById("modalPurchaseDate").value,
+    purchasePlace: document.getElementById("modalPurchasePlace").value.trim(),
+    status: document.getElementById("modalStatus").value
+  };
+  await updateDoc(doc(db,"figures",pendingId),data);
+  loadFigures();
+  document.getElementById("detailModal").style.display="none";
+}
+
+// 削除ボタン
+document.getElementById("deleteBtn").onclick=async ()=>{
+  if(!pendingId) return;
+  if(confirm("削除してよろしいですか？")){
+    await deleteDoc(doc(db,"figures",pendingId));
+    loadFigures();
+    document.getElementById("detailModal").style.display="none";
+  }
+}
+</script>
+</body>
+</html>
