@@ -272,13 +272,33 @@ async function openModal(id){
   const docRef=doc(db,"figures",id);
   const docSnap=await getDoc(docRef);
   const data=docSnap.data();
+
+  // モーダル内ブランド・購入場所をドロップダウン化
+  const brandOptions=[
+    "未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ",
+    "メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ",
+    "ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ",
+    "カプコン","バンプレスト","コナミ","アゾンインターナショナル"
+  ];
+  const placeOptions=[
+    "未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","ヤフーフリマ",
+    "あみあみ","フィギュア専門店","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス",
+    "海外通販","リサイクルショップ"
+  ];
+
   modalBody.innerHTML=`
     <label>商品名</label><input id="modalName" value="${data.name}">
     <label>価格</label><input id="modalPrice" type="number" value="${data.price}" step="100">
     <label>画像URL</label><input id="modalImage" value="${data.imageUrl}">
-    <label>メーカー / ブランド</label><input id="modalBrand" value="${data.brand||""}">
+    <label>メーカー / ブランド</label>
+    <select id="modalBrand">
+      ${brandOptions.map(b=>`<option value="${b}" ${b===data.brand?"selected":""}>${b}</option>`).join('')}
+    </select>
     <label>購入日</label><input id="modalDate" type="date" value="${data.purchaseDate||""}">
-    <label>購入場所</label><input id="modalPlace" value="${data.purchasePlace||""}">
+    <label>購入場所</label>
+    <select id="modalPlace">
+      ${placeOptions.map(p=>`<option value="${p}" ${p===data.purchasePlace?"selected":""}>${p}</option>`).join('')}
+    </select>
     <label>状態</label>
     <select id="modalStatus">
       <option value="owned" ${data.status==="owned"?"selected":""}>所持</option>
