@@ -173,7 +173,7 @@ let currentUser = null;
 let pendingId = null;
 
 const initialBrands = ["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"];
-const initialPlaces = ["未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
+const initialPlaces = ["未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ","ヤフーフリマ"];
 
 window.login = async ()=>{ await signInWithPopup(auth, provider); }
 window.logout = async ()=>{ await signOut(auth); }
@@ -186,7 +186,6 @@ onAuthStateChanged(auth, async user=>{
     document.getElementById("appArea").style.display="block";
     document.getElementById("loginArea").style.display="none";
 
-    // 初期選択肢ロード
     const brandSelect=document.getElementById("brandSelect");
     brandSelect.innerHTML="";
     initialBrands.forEach(b=>{ const opt=document.createElement("option"); opt.value=b; opt.textContent=b; brandSelect.appendChild(opt); });
@@ -204,7 +203,6 @@ onAuthStateChanged(auth, async user=>{
   }
 });
 
-// モーダル外クリックで閉じる
 document.getElementById("detailModal").onclick=(e)=>{ if(e.target.id==="detailModal") document.getElementById("detailModal").style.display="none"; }
 document.getElementById("closeBtn").onclick=()=>{ document.getElementById("detailModal").style.display="none"; }
 
@@ -227,8 +225,6 @@ window.addFigure = async ()=>{
     status: document.getElementById("status").value,
     createdAt: new Date()
   };
-
-  await addDoc(collection(db,"figures"), data);
 
   ["name","price","imageUrl","purchaseDate"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   loadFigures();
@@ -267,7 +263,6 @@ async function loadFigures(){
     const img=document.createElement("img"); img.src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
     const title=document.createElement("div"); title.innerHTML=`<strong>${data.name}</strong>`;
     const price=document.createElement("div"); price.textContent=`¥${data.price.toLocaleString()}`;
-    if(data.brand){ const brand=document.createElement("div"); brand.textContent=data.brand; card.appendChild(brand); }
     card.appendChild(img); card.appendChild(title); card.appendChild(price);
     card.onclick=()=>showModal(data.id,data);
     lists[data.status].appendChild(card);
