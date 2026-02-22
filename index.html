@@ -2,7 +2,7 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>フィギュア管理</title>
+<title>MyFigureCollection</title>
 <style>
 body{ font-family: Arial, sans-serif; margin:0; background:#f5f5f5; }
 header{ display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
@@ -39,9 +39,9 @@ button.addBtn{ background:#e74c3c; color:white; }
   overflow:auto;
 }
 .modalClose{ position:absolute; top:10px; right:10px; cursor:pointer; font-weight:bold; font-size:18px; }
-.modalLeft{ flex:1 1 350px; padding-right:15px; box-sizing:border-box; }
-.modalRight{ flex:1 1 450px; display:flex; justify-content:center; align-items:flex-start; padding-left:15px; } /* 上揃え */
-.modalRight img{ max-height:400px; max-width:100%; width:auto; border-radius:5px; object-fit:contain; box-shadow:0 2px 8px rgba(0,0,0,0.2); margin-top:0; }
+.modalLeft{ flex:1 1 100%; padding-right:15px; box-sizing:border-box; }
+.modalImgContainer{ margin-top:10px; text-align:center; }
+.modalImgContainer img{ max-height:300px; max-width:100%; border-radius:5px; object-fit:contain; box-shadow:0 2px 8px rgba(0,0,0,0.2); }
 
 label{font-weight:bold; display:block; margin-top:10px;}
 </style>
@@ -49,7 +49,7 @@ label{font-weight:bold; display:block; margin-top:10px;}
 <body>
 
 <header>
-<h2>フィギュア管理</h2>
+<h2>MyFigureCollection</h2>
 <div id="userArea"></div>
 </header>
 
@@ -114,7 +114,7 @@ label{font-weight:bold; display:block; margin-top:10px;}
 
   <button class="addBtn" onclick="addFigure()">追加</button>
 
-  <h3 id="totalValue">総資産: ¥0</h3>
+  <h3 id="totalValue">合計: ¥0</h3>
 
   <div class="sortBox">
     並べ替え:
@@ -142,19 +142,19 @@ label{font-weight:bold; display:block; margin-top:10px;}
   <div class="modalContent" id="modalContent">
     <span class="modalClose" id="modalClose">&times;</span>
     <div class="modalLeft" id="modalBody"></div>
-    <div class="modalRight">
+    <div class="modalImgContainer">
       <img id="modalImgPreview" src="https://via.placeholder.com/300x300?text=No+Image">
     </div>
   </div>
 </div>
 
 <script type="module">
+// Firebase初期化とAuth/Firestore
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
-
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 const auth=getAuth(app);
@@ -253,7 +253,7 @@ async function loadFigures(){
     list.appendChild(card);
   });
 
-  document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
+  document.getElementById("totalValue").innerText="合計: ¥"+total.toLocaleString();
 }
 
 document.getElementById("sortSelect").onchange=loadFigures;
@@ -273,7 +273,6 @@ async function openModal(id){
   const docSnap=await getDoc(docRef);
   const data=docSnap.data();
 
-  // モーダル内ブランド・購入場所をドロップダウン化
   const brandOptions=[
     "未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ",
     "メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ",
@@ -291,32 +290,27 @@ async function openModal(id){
     <label>価格</label><input id="modalPrice" type="number" value="${data.price}" step="100">
     <label>画像URL</label><input id="modalImage" value="${data.imageUrl}">
     <label>メーカー / ブランド</label>
-    <select id="modalBrand">
-      ${brandOptions.map(b=>`<option value="${b}" ${b===data.brand?"selected":""}>${b}</option>`).join('')}
-    </select>
+    <select id="modalBrand">${brandOptions.map(b=>`<option value="${b}" ${b===data.brand?"selected":""}>${b}</option>`).join('')}</select>
     <label>購入日</label><input id="modalDate" type="date" value="${data.purchaseDate||""}">
     <label>購入場所</label>
-    <select id="modalPlace">
-      ${placeOptions.map(p=>`<option value="${p}" ${p===data.purchasePlace?"selected":""}>${p}</option>`).join('')}
-    </select>
+    <select id="modalPlace">${placeOptions.map(p=>`<option value="${p}" ${p===data.purchasePlace?"selected":""}>${p}</option>`).join('')}</select>
     <label>状態</label>
     <select id="modalStatus">
       <option value="owned" ${data.status==="owned"?"selected":""}>所持</option>
       <option value="unowned" ${data.status==="unowned"?"selected":""}>未所持</option>
       <option value="sold" ${data.status==="sold"?"selected":""}>売却済み</option>
     </select>
+    <div class="modalImgContainer">
+      <img id="modalImgPreview2" src="${data.imageUrl||'https://via.placeholder.com/300x300?text=No+Image'}">
+    </div>
     <div style="margin-top:10px;">
       <button id="modalUpdate" style="background:#3498db;color:white;">更新</button>
       <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
     </div>
   `;
-  modalImgPreview.src=data.imageUrl||'https://via.placeholder.com/300x300?text=No+Image';
-  modal.style.display="flex";
 
-  document.getElementById("modalImage").oninput = ()=>{
-    const url=document.getElementById("modalImage").value;
-    modalImgPreview.src=url||'https://via.placeholder.com/300x300?text=No+Image';
-  };
+  const modalImg=document.getElementById("modalImgPreview2");
+  document.getElementById("modalImage").oninput=()=>{ modalImg.src=document.getElementById("modalImage").value||'https://via.placeholder.com/300x300?text=No+Image'; };
 
   document.getElementById("modalUpdate").onclick=async ()=>{
     const name=document.getElementById("modalName").value.trim();
@@ -335,6 +329,8 @@ async function openModal(id){
   document.getElementById("modalDelete").onclick=async ()=>{
     if(confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",id)); modal.style.display="none"; loadFigures(); }
   };
+
+  modal.style.display="flex";
 }
 </script>
 
