@@ -198,8 +198,10 @@ window.addFigure = async function(){
   loadFigures();
 }
 
-// フィギュア一覧読み込み
+// フィギュア一覧読み込み（ログインユーザーのみ）
 async function loadFigures(){
+  if(!currentUser) return;
+
   const q = query(collection(db, "figures"));
   const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
@@ -208,6 +210,10 @@ async function loadFigures(){
 
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
+
+    // 自分のフィギュアだけ表示
+    if(data.uid !== currentUser.uid) return;
+
     total += data.price;
 
     const imageSrc = data.imageUrl && data.imageUrl !== ""
@@ -226,7 +232,7 @@ async function loadFigures(){
     const price = document.createElement("div");
     price.textContent = `¥${data.price.toLocaleString()}`;
 
-    // 削除ボタン追加
+    // 削除ボタン
     const deleteBtn = document.createElement("button");
     deleteBtn.textContent = "削除";
     deleteBtn.style.marginTop = "10px";
@@ -234,8 +240,13 @@ async function loadFigures(){
     deleteBtn.style.color = "white";
     deleteBtn.onclick = async () => {
       if(confirm(`「${data.name}」を削除しますか？`)){
-        await deleteDoc(doc(db, "figures", docSnap.id));
-        loadFigures(); // 再読み込み
+        try{
+          await deleteDoc(doc(db, "figures", docSnap.id));
+          loadFigures(); // 再読み込み
+        } catch(e) {
+          alert("削除に失敗しました: " + e.message);
+          console.error(e);
+        }
       }
     };
 
