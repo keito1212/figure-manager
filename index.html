@@ -4,242 +4,166 @@
 <meta charset="UTF-8">
 <title>フィギュア管理</title>
 <style>
-body{
-  font-family: Arial, sans-serif;
-  margin:0;
-  background:#f5f5f5;
-}
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px 25px;
-  background:white;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-.userBox{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-.userBox img{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-}
-.container{
-  padding:30px;
-}
-input, select{
-  margin-right:8px;
-  padding:6px 10px;
-  border-radius:5px;
-  border:1px solid #ccc;
-}
-button{
-  padding:6px 12px;
-  cursor:pointer;
-  border:none;
-  border-radius:5px;
-}
-#figureList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-}
-.card{
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  cursor:pointer;
-}
-.card img{
-  width:100%;
-  max-height:200px;
-  object-fit:cover;
-  border-radius:8px;
-  margin-bottom:10px;
-}
-.filterGroup{
-  margin:15px 0;
-  display:flex;
-  gap:10px;
-  align-items:center;
-}
-.modal{
-  display:none;
-  position:fixed;
-  top:0; left:0;
-  width:100%; height:100%;
-  background: rgba(0,0,0,0.5);
-  justify-content:center;
-  align-items:center;
-  z-index:999;
-}
-.modalContent{
-  background:white;
-  max-width:600px;
-  width:90%;
-  max-height:90%;
-  overflow:auto;
-  padding:20px;
-  border-radius:10px;
-  position:relative;
-}
-.closeModal{
-  position:absolute;
-  top:10px; right:10px;
-  background:#ccc;
-  border:none;
-  border-radius:5px;
-  padding:5px 10px;
-  cursor:pointer;
-}
-.modalContent input, .modalContent select{
-  width:100%;
-  margin:5px 0 10px 0;
-}
-.modalContent img{
-  width:100%;
-  max-height:300px;
-  object-fit:cover;
-  margin-bottom:10px;
-}
-#addButton{
-  background:#e74c3c;
-  color:white;
-}
+body{ font-family: Arial, sans-serif; margin:0; background:#f5f5f5; }
+header{ display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 5px rgba(0,0,0,0.1); }
+.userBox{ display:flex; align-items:center; gap:10px; }
+.userBox img{ width:36px; height:36px; border-radius:50%; }
+.container{ padding:30px; }
+input,select{ margin-right:8px; padding:6px 10px; border-radius:5px; border:1px solid #ccc; }
+button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
+button.addBtn{ background:#e74c3c; color:white; }
+#figureList{ display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; }
+.card{ background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+.card img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px; }
+
+/* 状態フィルター */
+.filterBox{ margin:10px 0; }
+.filterBox label{ margin-right:10px; cursor:pointer; }
+
+/* 並べ替え */
+.sortBox{ margin:10px 0; }
+
+/* モーダル */
+.modal{ display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.4); justify-content:center; align-items:center; overflow:auto; z-index:1000; }
+.modalContent{ background:white; padding:20px; border-radius:8px; max-width:600px; width:90%; position:relative; }
+.modalClose{ position:absolute; top:10px; right:10px; cursor:pointer; font-weight:bold; font-size:18px; }
+
+label{font-weight:bold; display:block; margin-top:10px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h2>フィギュア管理</h2>
-  <div id="userArea"></div>
+<h2>フィギュア管理</h2>
+<div id="userArea"></div>
 </header>
 
 <div class="container">
-  <div id="loginArea">
-    <button onclick="login()">Googleログイン</button>
+<div id="loginArea">
+  <button onclick="login()">Googleログイン</button>
+</div>
+
+<div id="appArea" style="display:none;">
+  <input id="name" placeholder="商品名">
+  <input id="price" type="number" placeholder="価格" step="100">
+  <input id="imageUrl" placeholder="画像URL（任意）">
+  
+  <select id="brandSelect">
+    <option value="未選択">未選択</option>
+    <option>グッドスマイルカンパニー</option>
+    <option>アルター</option>
+    <option>コトブキヤ</option>
+    <option>マックスファクトリー</option>
+    <option>バンダイ</option>
+    <option>メガハウス</option>
+    <option>ホビージャパン</option>
+    <option>タカラトミー</option>
+    <option>フリーイング</option>
+    <option>アニプレックス</option>
+    <option>ホビーラウンジ</option>
+    <option>ファット・カンパニー</option>
+    <option>セガプライズ</option>
+    <option>リボルブ</option>
+    <option>オーキッドシード</option>
+    <option>アイリス・オーヤマ</option>
+    <option>カプコン</option>
+    <option>バンプレスト</option>
+    <option>コナミ</option>
+    <option>アゾンインターナショナル</option>
+  </select>
+
+  <input id="purchaseDate" type="date" placeholder="購入日">
+  <select id="placeSelect">
+    <option value="未選択">未選択</option>
+    <option>Amazon</option>
+    <option>楽天市場</option>
+    <option>Yahoo!ショッピング</option>
+    <option>メルカリ</option>
+    <option>ヤフオク</option>
+    <option>ヤフーフリマ</option>
+    <option>あみあみ</option>
+    <option>フィギュア専門店</option>
+    <option>ホビーショップ</option>
+    <option>トイザらス</option>
+    <option>ソフマップ</option>
+    <option>イベント・ワンフェス</option>
+    <option>海外通販</option>
+    <option>リサイクルショップ</option>
+  </select>
+
+  <select id="statusSelect">
+    <option value="owned">所持</option>
+    <option value="unowned">未所持</option>
+    <option value="sold">売却済み</option>
+  </select>
+
+  <button class="addBtn" onclick="addFigure()">追加</button>
+
+  <h3 id="totalValue">総資産: ¥0</h3>
+
+  <div class="sortBox">
+    並べ替え:
+    <select id="sortSelect">
+      <option value="name">名前順（昇順）</option>
+      <option value="priceDesc">価格順（高い→低い）</option>
+      <option value="priceAsc">価格順（低い→高い）</option>
+      <option value="newest">登録順（新しい→古い）</option>
+      <option value="oldest">登録順（古い→新しい）</option>
+    </select>
   </div>
 
-  <div id="appArea" style="display:none;">
-    <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
-      <input id="name" placeholder="商品名">
-      <input id="price" type="number" placeholder="価格" step="100">
-      <input id="imageUrl" placeholder="画像URL（任意）">
-      <select id="brandSelect"></select>
-      <input type="date" id="purchaseDate">
-      <select id="placeSelect"></select>
-      <select id="statusSelect">
-        <option value="owned">所持</option>
-        <option value="unowned">未所持</option>
-        <option value="sold">売却済み</option>
-      </select>
-      <button onclick="addFigure()" id="addButton">追加</button>
-    </div>
-
-    <div style="margin:15px 0;">
-      <h3 id="totalValue">総資産: ¥0</h3>
-      <div class="filterGroup">
-        <label>並べ替え:</label>
-        <select id="sortSelect">
-          <option value="nameAsc">名前順（昇順）</option>
-          <option value="priceDesc">価格順（高→低）</option>
-          <option value="priceAsc">価格順（低→高）</option>
-          <option value="newest">登録順（新→古）</option>
-          <option value="oldest">登録順（古→新）</option>
-        </select>
-        <label>所持<input type="checkbox" id="ownedCheck" checked></label>
-        <label>未所持<input type="checkbox" id="unownedCheck" checked></label>
-        <label>売却済み<input type="checkbox" id="soldCheck" checked></label>
-      </div>
-    </div>
-
-    <div id="figureList"></div>
+  <div class="filterBox">
+    状態フィルター:
+    所持<input type="checkbox" id="filterOwned" checked>
+    未所持<input type="checkbox" id="filterUnowned" checked>
+    売却済み<input type="checkbox" id="filterSold" checked>
   </div>
+
+  <div id="figureList"></div>
+</div>
 </div>
 
 <!-- 商品詳細モーダル -->
-<div id="figureModal" class="modal">
-  <div class="modalContent">
-    <button class="closeModal" onclick="closeModal()">閉じる</button>
-    <label>商品名</label><input id="modalName">
-    <label>価格</label><input id="modalPrice" type="number" step="100">
-    <label>画像URL</label><input id="modalImageUrl">
-    <label>メーカー / ブランド</label><select id="modalBrandSelect"></select>
-    <label>購入日</label><input type="date" id="modalPurchaseDate">
-    <label>購入場所</label><select id="modalPlaceSelect"></select>
-    <label>状態 / 保存状態</label>
-    <select id="modalStatusSelect">
-      <option value="owned">所持</option>
-      <option value="unowned">未所持</option>
-      <option value="sold">売却済み</option>
-    </select>
-    <label>現在の画像</label><img id="modalCurrentImage">
-    <div style="margin-top:10px;">
-      <button id="modalUpdate" style="background:#3498db;color:white;">更新</button>
-      <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
-    </div>
+<div class="modal" id="figureModal">
+  <div class="modalContent" id="modalContent">
+    <span class="modalClose" id="modalClose">&times;</span>
+    <div id="modalBody"></div>
   </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-const firebaseConfig = { apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ", authDomain:"figure-manager-ee77e.firebaseapp.com", projectId:"figure-manager-ee77e", storageBucket:"figure-manager-ee77e.firebasestorage.app", messagingSenderId:"869184722518", appId:"1:869184722518:web:3c3c5cc645734707ec8df7" };
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
+
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+const provider=new GoogleAuthProvider();
+
 let currentUser=null;
 
-const initialBrands=["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系)"];
-const initialPlaces=["未選択","Amazon","楽天市場","Yahoo!ショッピング","ヤフオク","ヤフーフリマ","メルカリ","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
+window.login=async()=>{ await signInWithPopup(auth, provider); }
+window.logout=async()=>{ await signOut(auth); }
 
-// ログイン/ログアウト
-window.login = async()=>{ await signInWithPopup(auth, provider);}
-window.logout = async()=>{ await signOut(auth); }
-
-// onAuthStateChanged 内は async 関数呼び出しのみ
-onAuthStateChanged(auth, (user)=>{
+onAuthStateChanged(auth,user=>{
   const userArea=document.getElementById("userArea");
-  if(!user){
-    currentUser=null;
-    userArea.innerHTML="";
-    document.getElementById("appArea").style.display="none";
-    document.getElementById("loginArea").style.display="block";
-  } else {
+  if(user){
     currentUser=user;
     userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
     document.getElementById("appArea").style.display="block";
     document.getElementById("loginArea").style.display="none";
-    initializeAppAfterLogin(); // async 初期化関数
+    loadFigures();
+  }else{
+    currentUser=null;
+    userArea.innerHTML="";
+    document.getElementById("appArea").style.display="none";
+    document.getElementById("loginArea").style.display="block";
   }
 });
 
-async function initializeAppAfterLogin(){
-  initSelects();
-  initModalSelects();
-  await loadFigures();
-}
-
-function initSelects(){
-  const brand=document.getElementById("brandSelect"); brand.innerHTML=""; initialBrands.forEach(b=>{ let o=document.createElement("option"); o.value=b; o.textContent=b; brand.appendChild(o); });
-  const place=document.getElementById("placeSelect"); place.innerHTML=""; initialPlaces.forEach(p=>{ let o=document.createElement("option"); o.value=p; o.textContent=p; place.appendChild(o); });
-}
-function initModalSelects(){
-  const brand=document.getElementById("modalBrandSelect"); brand.innerHTML=""; initialBrands.forEach(b=>{ let o=document.createElement("option"); o.value=b; o.textContent=b; brand.appendChild(o); });
-  const place=document.getElementById("modalPlaceSelect"); place.innerHTML=""; initialPlaces.forEach(p=>{ let o=document.createElement("option"); o.value=p; o.textContent=p; place.appendChild(o); });
-}
-
-// 商品追加
 window.addFigure=async function(){
   const name=document.getElementById("name").value.trim();
   const price=document.getElementById("price").value.trim();
@@ -259,7 +183,7 @@ window.addFigure=async function(){
     purchaseDate,
     purchasePlace:place,
     status,
-    createdAt:new Date()
+    createdAt:Timestamp.fromDate(new Date())
   });
 
   document.getElementById("name").value="";
@@ -269,106 +193,110 @@ window.addFigure=async function(){
   document.getElementById("purchaseDate").value="";
   document.getElementById("placeSelect").value="未選択";
   document.getElementById("statusSelect").value="owned";
-  await loadFigures();
+
+  loadFigures();
 }
 
-// 並べ替え・フィルター
-["sortSelect","ownedCheck","unownedCheck","soldCheck"].forEach(id=>{
-  document.getElementById(id).onchange=loadFigures;
-});
-
-// モーダル制御
-const modal=document.getElementById("figureModal");
-let modalFigureId=null;
-function openModal(figure){ 
-  modalFigureId=figure.id; 
-  modal.style.display="flex"; 
-  document.getElementById("modalName").value=figure.name;
-  document.getElementById("modalPrice").value=figure.price;
-  document.getElementById("modalImageUrl").value=figure.imageUrl||"";
-  document.getElementById("modalBrandSelect").value=figure.brand||"未選択";
-  document.getElementById("modalPurchaseDate").value=figure.purchaseDate||"";
-  document.getElementById("modalPlaceSelect").value=figure.purchasePlace||"未選択";
-  document.getElementById("modalStatusSelect").value=figure.status||"owned";
-  document.getElementById("modalCurrentImage").src=figure.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
-}
-function closeModal(){ modal.style.display="none"; modalFigureId=null; }
-modal.onclick=function(e){ if(e.target===modal) closeModal(); }
-
-// 商品一覧
 async function loadFigures(){
   const q=collection(db,"figures");
-  const snapshot=await getDocs(q);
+  const querySnapshot=await getDocs(q);
   const list=document.getElementById("figureList");
   list.innerHTML="";
   let total=0;
-  let figures=snapshot.docs.map(d=>{ let data=d.data(); data.id=d.id; return data; }).filter(f=>f.uid===currentUser.uid);
-
-  const ownedCheck=document.getElementById("ownedCheck").checked;
-  const unownedCheck=document.getElementById("unownedCheck").checked;
-  const soldCheck=document.getElementById("soldCheck").checked;
-  figures=figures.filter(f=> (f.status==="owned"?ownedCheck:(f.status==="unowned"?unownedCheck:soldCheck)) );
 
   const sortVal=document.getElementById("sortSelect").value;
-  figures.sort((a,b)=>{
-    if(sortVal==="nameAsc") return a.name.localeCompare(b.name);
+  const filterOwned=document.getElementById("filterOwned").checked;
+  const filterUnowned=document.getElementById("filterUnowned").checked;
+  const filterSold=document.getElementById("filterSold").checked;
+
+  const dataArr=[];
+  querySnapshot.forEach(docSnap=>{
+    const data=docSnap.data();
+    if(data.uid!==currentUser.uid) return;
+    // 状態フィルター
+    if(data.status==="owned"&&!filterOwned) return;
+    if(data.status==="unowned"&&!filterUnowned) return;
+    if(data.status==="sold"&&!filterSold) return;
+    dataArr.push({...data,id:docSnap.id});
+    total+=data.price;
+  });
+
+  // 並べ替え
+  dataArr.sort((a,b)=>{
+    if(sortVal==="name") return a.name.localeCompare(b.name);
     if(sortVal==="priceDesc") return b.price-a.price;
     if(sortVal==="priceAsc") return a.price-b.price;
     if(sortVal==="newest") return b.createdAt.toDate()-a.createdAt.toDate();
     if(sortVal==="oldest") return a.createdAt.toDate()-b.createdAt.toDate();
-    return 0;
   });
 
-  figures.forEach(f=>{
-    total+=f.price;
+  dataArr.forEach(data=>{
+    const imageSrc=data.imageUrl&&data.imageUrl!==""?data.imageUrl:"https://via.placeholder.com/600x400?text=No+Image";
     const card=document.createElement("div");
     card.className="card";
-    card.onclick=()=>openModal(f);
-
-    const img=document.createElement("img");
-    img.src=f.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
-
-    const title=document.createElement("div");
-    title.innerHTML=`<strong>${f.name}</strong>`;
-
-    const price=document.createElement("div");
-    price.textContent=`¥${f.price.toLocaleString()}`;
-
-    const status=document.createElement("div");
-    status.textContent=f.status==="owned"?"所持":f.status==="unowned"?"未所持":"売却済み";
-
-    card.appendChild(img);
-    card.appendChild(title);
-    card.appendChild(price);
-    card.appendChild(status);
-
+    card.innerHTML=`<img src="${imageSrc}"><strong>${data.name}</strong><div>¥${data.price.toLocaleString()}</div>`;
+    card.onclick=()=>openModal(data.id);
     list.appendChild(card);
   });
 
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
 }
 
-// モーダル更新・削除
-document.getElementById("modalUpdate").onclick=async()=>{
-  if(!modalFigureId) return;
-  const name=document.getElementById("modalName").value.trim();
-  const price=Number(document.getElementById("modalPrice").value);
-  const imageUrl=document.getElementById("modalImageUrl").value.trim();
-  const brand=document.getElementById("modalBrandSelect").value;
-  const purchaseDate=document.getElementById("modalPurchaseDate").value;
-  const purchasePlace=document.getElementById("modalPlaceSelect").value;
-  const status=document.getElementById("modalStatusSelect").value;
-  if(!name||!price){ alert("入力してください"); return; }
-  await updateDoc(doc(db,"figures",modalFigureId),{name,price,imageUrl,brand,purchaseDate,purchasePlace,status});
-  alert("更新しました"); closeModal(); await loadFigures();
-}
+// 並べ替えやフィルター変更で即反映
+document.getElementById("sortSelect").onchange=loadFigures;
+document.getElementById("filterOwned").onchange=loadFigures;
+document.getElementById("filterUnowned").onchange=loadFigures;
+document.getElementById("filterSold").onchange=loadFigures;
 
-document.getElementById("modalDelete").onclick=async()=>{
-  if(modalFigureId && confirm("削除しますか？")){
-    await deleteDoc(doc(db,"figures",modalFigureId));
-    alert("削除しました"); closeModal(); await loadFigures();
-  }
+// popup モーダル
+const modal=document.getElementById("figureModal");
+const modalBody=document.getElementById("modalBody");
+document.getElementById("modalClose").onclick=()=>{ modal.style.display="none"; };
+window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; };
+
+async function openModal(id){
+  const docRef=doc(db,"figures",id);
+  const docSnap=await getDoc(docRef);
+  const data=docSnap.data();
+  modalBody.innerHTML=`
+    <label>商品名</label><input id="modalName" value="${data.name}">
+    <label>価格</label><input id="modalPrice" type="number" value="${data.price}" step="100">
+    <label>画像URL</label><input id="modalImage" value="${data.imageUrl}">
+    <label>メーカー / ブランド</label><input id="modalBrand" value="${data.brand||""}">
+    <label>購入日</label><input id="modalDate" type="date" value="${data.purchaseDate||""}">
+    <label>購入場所</label><input id="modalPlace" value="${data.purchasePlace||""}">
+    <label>状態</label>
+    <select id="modalStatus">
+      <option value="owned" ${data.status==="owned"?"selected":""}>所持</option>
+      <option value="unowned" ${data.status==="unowned"?"selected":""}>未所持</option>
+      <option value="sold" ${data.status==="sold"?"selected":""}>売却済み</option>
+    </select>
+    <div style="margin-top:10px;">
+      <button id="modalUpdate" style="background:#3498db;color:white;">更新</button>
+      <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
+    </div>
+  `;
+  modal.style.display="flex";
+
+  document.getElementById("modalUpdate").onclick=async ()=>{
+    const name=document.getElementById("modalName").value.trim();
+    const price=Number(document.getElementById("modalPrice").value);
+    const imageUrl=document.getElementById("modalImage").value.trim();
+    const brand=document.getElementById("modalBrand").value;
+    const purchaseDate=document.getElementById("modalDate").value;
+    const purchasePlace=document.getElementById("modalPlace").value;
+    const status=document.getElementById("modalStatus").value;
+    if(!name||!price){ alert("商品名と価格を入力してください"); return; }
+    await updateDoc(doc(db,"figures",id),{ name, price, imageUrl, brand, purchaseDate, purchasePlace, status });
+    modal.style.display="none";
+    loadFigures();
+  };
+
+  document.getElementById("modalDelete").onclick=async ()=>{
+    if(confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",id)); modal.style.display="none"; loadFigures(); }
+  };
 }
 </script>
+
 </body>
 </html>
