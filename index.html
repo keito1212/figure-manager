@@ -106,7 +106,7 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, getDocs, query
+  getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc 
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { 
   getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
@@ -226,9 +226,23 @@ async function loadFigures(){
     const price = document.createElement("div");
     price.textContent = `¥${data.price.toLocaleString()}`;
 
+    // 削除ボタン追加
+    const deleteBtn = document.createElement("button");
+    deleteBtn.textContent = "削除";
+    deleteBtn.style.marginTop = "10px";
+    deleteBtn.style.backgroundColor = "#e74c3c";
+    deleteBtn.style.color = "white";
+    deleteBtn.onclick = async () => {
+      if(confirm(`「${data.name}」を削除しますか？`)){
+        await deleteDoc(doc(db, "figures", docSnap.id));
+        loadFigures(); // 再読み込み
+      }
+    };
+
     card.appendChild(img);
     card.appendChild(title);
     card.appendChild(price);
+    card.appendChild(deleteBtn);
 
     list.appendChild(card);
   });
