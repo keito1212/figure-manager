@@ -1,3 +1,34 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <title>Figure Manager</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+  <style>
+    body { font-family: Arial; padding: 20px; }
+    input { padding: 8px; margin: 5px 0; }
+    button { padding: 8px 12px; margin: 5px 0; }
+    .card { border: 1px solid #ccc; margin-top: 10px; }
+    .card-body { padding: 10px; }
+    .price { color: green; font-weight: bold; }
+  </style>
+</head>
+<body>
+
+<h2>フィギュア管理</h2>
+
+<button onclick="login()">Googleログイン</button>
+
+<div>
+  <input id="name" placeholder="フィギュア名">
+  <input id="price" type="number" placeholder="価格">
+  <button onclick="addFigure()">追加</button>
+</div>
+
+<h3 id="totalValue">総資産: ¥0</h3>
+<div id="figureList"></div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -69,3 +100,6 @@ async function loadFigures(){
 loadFigures();
 
 </script>
+
+</body>
+</html>
