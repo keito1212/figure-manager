@@ -14,18 +14,18 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 #figureList{display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;}
 .card{background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;}
 .card img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px;}
-.card .marketPrice{margin-top:5px; font-size:0.9em; color:#3498db;}
 /* モーダル */
 .modal{display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.5);}
 .modalContent{background:white; margin:50px auto; padding:20px; border-radius:8px; max-width:500px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
 .modalClose{float:right; font-size:24px; cursor:pointer;}
 .modalBody input, .modalBody select{width:100%; margin-top:5px; margin-bottom:10px;}
 .modalImgContainer{display:flex; justify-content:center; margin-top:10px;}
-.modalImgContainer img{max-width:100%; max-height:300px; border-radius:5px;}
+.modalImgContainer img{max-width:100%; max-height:200px; border-radius:5px;}
 .statusFilters{margin:10px 0;}
 .statusFilters label{margin-right:10px;}
 .sortSelect{margin:10px 0; padding:6px;}
 .addBtn{background:#e74c3c; color:white;}
+.marketPrice{margin-top:5px; font-weight:bold;}
 </style>
 </head>
 <body>
@@ -42,11 +42,9 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
   </div>
 
   <div id="appArea" style="display:none;">
-    <!-- 商品追加フォーム -->
     <input id="name" placeholder="商品名">
     <input id="price" type="number" placeholder="価格" step="100">
     <input id="imageUrl" placeholder="画像URL（任意）">
-
     <select id="brand">
       <option value="">未選択</option>
       <option>グッドスマイルカンパニー</option>
@@ -182,30 +180,10 @@ window.addFigure=async()=>{
   loadFigures();
 }
 
-// 並べ替え・フィルター変更時もリアルタイム
 document.getElementById("sortSelect").addEventListener("change", loadFigures);
 document.getElementById("filterOwned").addEventListener("change", loadFigures);
 document.getElementById("filterUnowned").addEventListener("change", loadFigures);
 document.getElementById("filterSold").addEventListener("change", loadFigures);
-
-async function fetchMarketPrice(itemName){
-  // 楽天商品検索API例
-  const APP_ID = "YOUR_RAKUTEN_APP_ID"; // ←ここに楽天APIアプリID
-  const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?format=json&applicationId=${APP_ID}&keyword=${encodeURIComponent(itemName)}&hits=1`;
-
-  try{
-    const res = await fetch(url);
-    const data = await res.json();
-    if(data.Items && data.Items.length > 0){
-      return Number(data.Items[0].Item.itemPrice);
-    }else{
-      return 0;
-    }
-  }catch(e){
-    console.error("API取得エラー:", e);
-    return 0;
-  }
-}
 
 async function loadFigures(){
   const querySnapshot = await getDocs(collection(db,"figures"));
@@ -219,7 +197,6 @@ async function loadFigures(){
     figures.push({...data, id:docSnap.id});
   });
 
-  // 状態フィルター
   const fOwned=document.getElementById("filterOwned").checked;
   const fUnowned=document.getElementById("filterUnowned").checked;
   const fSold=document.getElementById("filterSold").checked;
@@ -230,7 +207,6 @@ async function loadFigures(){
     return true;
   });
 
-  // 並べ替え
   const sortVal=document.getElementById("sortSelect").value;
   filtered.sort((a,b)=>{
     switch(sortVal){
@@ -248,21 +224,56 @@ async function loadFigures(){
     const img=document.createElement("img"); img.src=f.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
     const title=document.createElement("div"); title.innerHTML=`<strong>${f.name}</strong>`;
     const price=document.createElement("div"); price.textContent=`¥${f.price.toLocaleString()}`;
-    const marketPrice=document.createElement("div"); marketPrice.className="marketPrice"; marketPrice.textContent="相場取得中...";
-    card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketPrice);
-
+    
+    const marketDiv=document.createElement("div"); marketDiv.className="marketPrice"; 
+    marketDiv.textContent="相場取得中...";
+    card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketDiv);
+    
     card.onclick=()=>openModal(f);
-
     list.appendChild(card);
 
-    // 非同期で相場価格取得
-    fetchMarketPrice(f.name).then(mp=>{
-      if(mp>0) marketPrice.textContent=`現在の相場: ¥${mp.toLocaleString()}`;
-      else marketPrice.textContent=`相場情報なし`;
+    // 非同期で相場取得
+    fetchMarketPrice(f.name).then(res=>{
+      if(res.price>0) marketDiv.innerHTML=`相場: <a href="${res.url}" target="_blank">¥${res.price.toLocaleString()}</a>`;
+      else marketDiv.textContent="相場情報なし";
     });
   }
 
   document.getElementById("totalValue").innerText="合計: ¥"+total.toLocaleString();
+}
+
+// --- 改良版 fetchMarketPrice ---
+function normalizeKeyword(name){
+  // 特殊文字削除、主要ワード抽出（最初の6単語）
+  return name.replace(/[！/「」"“”]/g," ").split(" ").filter(Boolean).slice(0,6).join(" ");
+}
+
+async function fetchMarketPrice(itemName){
+  const APP_ID = "YOUR_RAKUTEN_APP_ID"; // ここを置き換え
+  const keyword = normalizeKeyword(itemName);
+  const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?format=json&applicationId=${APP_ID}&keyword=${encodeURIComponent(keyword)}&hits=10`;
+
+  try{
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.Items && data.Items.length>0){
+      // 最安価格とURLを取得
+      let minPrice = Infinity;
+      let minUrl = "";
+      data.Items.forEach(i=>{
+        const item = i.Item;
+        if(item.itemPrice && item.itemPrice < minPrice){
+          minPrice = item.itemPrice;
+          minUrl = item.itemUrl;
+        }
+      });
+      if(minPrice!==Infinity) return {price:minPrice, url:minUrl};
+    }
+    return {price:0,url:""};
+  }catch(e){
+    console.error("API取得エラー:", e);
+    return {price:0,url:""};
+  }
 }
 
 // モーダル
@@ -309,10 +320,8 @@ function openModal(f){
   }
 }
 
-// モーダル閉じる
 modalClose.onclick=()=>{ modal.style.display="none"; }
 window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
-
 </script>
 </body>
 </html>
