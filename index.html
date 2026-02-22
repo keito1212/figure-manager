@@ -42,11 +42,9 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
   </div>
 
   <div id="appArea" style="display:none;">
-    <!-- 商品追加フォーム -->
     <input id="name" placeholder="商品名">
     <input id="price" type="number" placeholder="価格" step="100">
     <input id="imageUrl" placeholder="画像URL（任意）">
-
     <select id="brand">
       <option value="">未選択</option>
       <option>グッドスマイルカンパニー</option>
@@ -70,9 +68,7 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
       <option>コナミ</option>
       <option>アゾンインターナショナル</option>
     </select>
-
     <input id="purchaseDate" type="date" placeholder="購入日">
-
     <select id="purchasePlace">
       <option value="">未選択</option>
       <option>Amazon</option>
@@ -90,13 +86,11 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
       <option>海外通販</option>
       <option>リサイクルショップ</option>
     </select>
-
     <select id="status">
       <option value="owned">所持</option>
       <option value="unowned">未所持</option>
       <option value="sold">売却済み</option>
     </select>
-
     <button class="addBtn" onclick="addFigure()">追加</button>
 
     <h3 id="totalValue">合計: ¥0</h3>
@@ -121,7 +115,6 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
   </div>
 </div>
 
-<!-- モーダル -->
 <div class="modal" id="figureModal">
   <div class="modalContent">
     <span class="modalClose" id="modalClose">&times;</span>
@@ -134,14 +127,12 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// Firebase設定
 const firebaseConfig = {apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
 const app = initializeApp(firebaseConfig);
 const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
-// 楽天API
 const rakutenAppId = "0da3457b-5ef7-4a1f-888a-58c16dbac9c9";
 
 let currentUser = null;
@@ -156,16 +147,15 @@ window.login = async()=>{ await signInWithPopup(auth, provider); }
 window.logout = async()=>{ await signOut(auth); }
 
 onAuthStateChanged(auth, user=>{
-  const userArea = document.getElementById("userArea");
   if(user){
     currentUser=user;
-    userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
+    document.getElementById("userArea").innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
     document.getElementById("appArea").style.display="block";
     document.getElementById("loginArea").style.display="none";
     loadFigures();
   }else{
     currentUser=null;
-    userArea.innerHTML="";
+    document.getElementById("userArea").innerHTML="";
     document.getElementById("appArea").style.display="none";
     document.getElementById("loginArea").style.display="block";
   }
@@ -190,11 +180,13 @@ document.getElementById("filterOwned").addEventListener("change", loadFigures);
 document.getElementById("filterUnowned").addEventListener("change", loadFigures);
 document.getElementById("filterSold").addEventListener("change", loadFigures);
 
-// 楽天API相場取得
+// 長い商品名でもヒット率を上げるfetchMarketPrice
 async function fetchMarketPrice(itemName){
   try{
-    const encoded = encodeURIComponent(itemName);
-    const url=`https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?format=json&applicationId=${rakutenAppId}&keyword=${encoded}&sort=%2BitemPrice&hits=1`;
+    // 括弧・記号・余分なスペースを除去
+    let keyword = itemName.replace(/（.*?）|\(.*?\)|「.*?」|".*?"|【.*?】/g,'').trim();
+    keyword = keyword.split(' ').slice(0,5).join(' '); // 主要キーワード上位5単語
+    const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?format=json&applicationId=${rakutenAppId}&keyword=${encodeURIComponent(keyword)}&sort=%2BitemPrice&hits=1`;
     const resp = await fetch(url);
     const data = await resp.json();
     if(data.Items && data.Items.length>0){
@@ -252,7 +244,6 @@ async function loadFigures(){
     card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketPriceDiv);
     list.appendChild(card);
 
-    // 相場情報取得
     fetchMarketPrice(f.name).then(mp=>{
       if(mp){
         marketPriceDiv.innerHTML=`<a href="${mp.url}" target="_blank">相場: ¥${mp.price.toLocaleString()}</a>`;
@@ -285,7 +276,7 @@ function openModal(f){
       <option value="unowned" ${f.status==="unowned"?"selected":""}>未所持</option>
       <option value="sold" ${f.status==="sold"?"selected":""}>売却済み</option>
     </select>
-    <div class="modalImgContainer"><img src="${f.imageUrl||'https://via.placeholder.com/300x300?text=No+Image'}" id="modalImgPreview"></div>
+    <div class="modalImgContainer"><img src="${f.imageUrl||'https://via.placeholder.com/300x300?text=No+Image'}"></div>
     <div style="margin-top:10px;">
       <button id="modalUpdate" style="background:#3498db;color:white;">更新</button>
       <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
@@ -311,7 +302,6 @@ function openModal(f){
   }
 }
 
-// モーダル閉じる
 modalClose.onclick=()=>{ modal.style.display="none"; }
 window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
 
