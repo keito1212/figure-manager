@@ -21,15 +21,29 @@ body{
 
 h2{
   text-align:center;
+  margin-bottom:20px;
+}
+
+label{
+  font-weight:bold;
+  display:block;
+  margin-top:10px;
 }
 
 input{
   width:100%;
   padding:8px 10px;
-  margin:10px 0;
+  margin:5px 0;
   border-radius:5px;
   border:1px solid #ccc;
   box-sizing:border-box;
+}
+
+img#currentImage{
+  display:block;
+  max-width:100%;
+  margin:10px 0;
+  border-radius:5px;
 }
 
 button{
@@ -59,9 +73,19 @@ button{
 
 <div class="container">
   <h2>商品詳細</h2>
+  
+  <label>商品名</label>
   <input id="name" placeholder="商品名">
+
+  <label>価格</label>
   <input id="price" type="number" step="100" placeholder="価格">
+
+  <label>画像URL</label>
   <input id="imageUrl" placeholder="画像URL（任意）">
+
+  <label>現在の画像</label>
+  <img id="currentImage" src="" alt="現在の画像">
+
   <div style="margin-top:20px;">
     <button id="updateBtn">更新</button>
     <button id="deleteBtn">削除</button>
@@ -130,6 +154,9 @@ async function loadFigure(){
   document.getElementById("name").value = data.name;
   document.getElementById("price").value = data.price;
   document.getElementById("imageUrl").value = data.imageUrl || "";
+
+  // 現在の画像表示
+  document.getElementById("currentImage").src = data.imageUrl || "https://via.placeholder.com/600x400?text=No+Image";
 }
 
 // 更新
@@ -150,6 +177,8 @@ document.getElementById("updateBtn").onclick = async () => {
       imageUrl
     });
     alert("更新しました");
+    // 画像も更新
+    document.getElementById("currentImage").src = imageUrl || "https://via.placeholder.com/600x400?text=No+Image";
   } catch(e){
     alert("更新に失敗しました: " + e.message);
   }
