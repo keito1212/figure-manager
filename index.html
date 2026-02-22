@@ -10,7 +10,7 @@ header{ display:flex; justify-content:space-between; align-items:center; padding
 .userBox img{ width:36px; height:36px; border-radius:50%; }
 .container{ padding:30px; }
 
-input, select{ margin:5px 0; padding:6px 10px; border-radius:5px; border:1px solid #ccc; width:100%; box-sizing:border-box; }
+input, select{ margin:5px 0; padding:6px 10px; border-radius:5px; border:1px solid #ccc; width:100%; box-sizing:border-box; background-color:white; color:#333; }
 button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
 #addBtn{ background:#e74c3c; color:white; }
 
@@ -33,7 +33,7 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
   width:400px; max-width:90%; max-height:80vh; overflow-y:auto;
 }
 #detailModal label{ font-weight:bold; display:block; margin-top:10px; }
-#detailModal input, #detailModal select{ width:100%; padding:6px 8px; margin-top:5px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box; }
+#detailModal input, #detailModal select{ width:100%; padding:6px 8px; margin-top:5px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box; background-color:white; color:#333; }
 #detailModal img{ display:block; width:100%; margin:10px 0; border-radius:5px; }
 #detailModal .modalButtons{ text-align:right; margin-top:15px; }
 #detailModal button{ margin-left:5px; padding:6px 12px; border:none; border-radius:5px; cursor:pointer; }
@@ -181,13 +181,9 @@ const provider = new GoogleAuthProvider();
 let currentUser = null;
 let pendingId = null;
 
-// 初期登録データ
-const initialBrands = [
-  "グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"
-];
-const initialPlaces = [
-  "Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"
-];
+// 初期データ
+const initialBrands = ["グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"];
+const initialPlaces = ["Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
 
 window.login = async ()=>{ await signInWithPopup(auth, provider); }
 window.logout = async ()=>{ await signOut(auth); }
@@ -278,7 +274,6 @@ window.addFigure = async ()=>{
     createdAt: new Date()
   };
 
-  await addDoc(collection(db,"figures"),data);
   ["name","price","imageUrl","brandInput","purchaseDate","placeInput"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   document.getElementById("brandSelect").value="";
   document.getElementById("placeSelect").value="";
@@ -343,12 +338,12 @@ function showModal(id,data){
   document.getElementById("detailModal").style.display="flex";
 }
 
-// 更新ボタン
+// 更新・削除
 document.getElementById("updateBtn").onclick=async ()=>{
   if(!pendingId) return;
   const data={
     name: document.getElementById("modalName").value.trim(),
-    price:Number(document.getElementById("modalPrice").value),
+    price: Number(document.getElementById("modalPrice").value),
     imageUrl: document.getElementById("modalImageUrl").value.trim(),
     brand: document.getElementById("modalBrand").value.trim(),
     purchaseDate: document.getElementById("modalPurchaseDate").value,
@@ -360,7 +355,6 @@ document.getElementById("updateBtn").onclick=async ()=>{
   document.getElementById("detailModal").style.display="none";
 }
 
-// 削除ボタン
 document.getElementById("deleteBtn").onclick=async ()=>{
   if(!pendingId) return;
   if(confirm("削除してよろしいですか？")){
