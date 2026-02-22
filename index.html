@@ -40,6 +40,19 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 #updateBtn{ background:#3498db; color:white; }
 #deleteBtn{ background:#e74c3c; color:white; }
 #closeBtn{ background:#ccc; }
+
+/* チェックボックス横並び */
+.statusFilterContainer{
+  display:flex;
+  gap:15px;
+  margin:10px 0 20px 0;
+}
+.statusFilterContainer label{
+  display:flex;
+  align-items:center;
+  gap:5px;
+  margin:0;
+}
 </style>
 </head>
 <body>
@@ -83,7 +96,7 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
     </select>
 
     <!-- 状態フィルタ -->
-    <div>
+    <div class="statusFilterContainer">
       <label><input type="checkbox" class="statusFilter" value="owned" checked> 所持</label>
       <label><input type="checkbox" class="statusFilter" value="unowned" checked> 未所持</label>
       <label><input type="checkbox" class="statusFilter" value="sold" checked> 売却済み</label>
