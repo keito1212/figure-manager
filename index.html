@@ -1,190 +1,71 @@
-<!DOCTYPE html>
-<html lang="ja">
-<head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Figure Manager</title>
+<script type="module">
 
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-<style>
-body{
-    font-family: 'Inter', sans-serif;
-    background:#f5f7fb;
-    margin:0;
-    padding:20px;
+const firebaseConfig = {
+  apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
+  authDomain: "figure-manager-ee77e.firebaseapp.com",
+  projectId: "figure-manager-ee77e",
+  storageBucket: "figure-manager-ee77e.firebasestorage.app",
+  messagingSenderId: "869184722518",
+  appId: "1:869184722518:web:3c3c5cc645734707ec8df7",
+  measurementId: "G-FD6EFD30CW"
+};
+
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+window.login = async function(){
+  await signInWithPopup(auth, provider);
+  alert("ログイン成功");
+  loadFigures();
 }
 
-h1{
-    margin-bottom:20px;
+window.addFigure = async function(){
+  const name = document.getElementById("name").value;
+  const price = document.getElementById("price").value;
+
+  if(!name || !price){
+    alert("入力してください");
+    return;
+  }
+
+  await addDoc(collection(db, "figures"), {
+    name,
+    price: Number(price),
+    createdAt: new Date()
+  });
+
+  loadFigures();
 }
 
-.container{
-    max-width:1100px;
-    margin:auto;
-}
+async function loadFigures(){
+  const querySnapshot = await getDocs(collection(db, "figures"));
+  const list = document.getElementById("figureList");
+  list.innerHTML = "";
+  let total = 0;
 
-.card-grid{
-    display:grid;
-    grid-template-columns:repeat(auto-fill,minmax(220px,1fr));
-    gap:20px;
-}
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    total += data.price;
 
-.card{
-    background:white;
-    border-radius:16px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.05);
-    overflow:hidden;
-    transition:0.3s;
-}
-
-.card:hover{
-    transform:translateY(-5px);
-}
-
-.card img{
-    width:100%;
-    height:200px;
-    object-fit:cover;
-}
-
-.card-body{
-    padding:15px;
-}
-
-.price{
-    font-weight:600;
-    color:#1d4ed8;
-}
-
-.form{
-    background:white;
-    padding:20px;
-    border-radius:16px;
-    box-shadow:0 10px 25px rgba(0,0,0,0.05);
-    margin-bottom:30px;
-}
-
-input, select, textarea{
-    width:100%;
-    padding:10px;
-    margin-bottom:10px;
-    border-radius:8px;
-    border:1px solid #ddd;
-}
-
-button{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:12px;
-    width:100%;
-    border-radius:8px;
-    cursor:pointer;
-    font-weight:600;
-}
-
-button:hover{
-    background:#1e40af;
-}
-
-.total{
-    font-size:18px;
-    font-weight:600;
-    margin-bottom:20px;
-}
-</style>
-</head>
-
-<body>
-
-<div class="container">
-
-<h1>フィギュア管理</h1>
-
-<div class="form">
-<input id="name" placeholder="商品名">
-<input id="price" type="number" placeholder="購入価格">
-<input id="purchaseDate" type="date">
-<input id="image" type="file">
-<button onclick="addFigure()">登録</button>
-</div>
-
-<div class="total" id="totalValue"></div>
-
-<div class="card-grid" id="figureList"></div>
-
-</div>
-
-<script>
-
-let figures = JSON.parse(localStorage.getItem("figures")) || [];
-
-function saveData(){
-    localStorage.setItem("figures", JSON.stringify(figures));
-}
-
-function render(){
-    const list = document.getElementById("figureList");
-    list.innerHTML = "";
-
-    let total = 0;
-
-    figures.forEach((f,index)=>{
-        total += Number(f.price);
-
-        list.innerHTML += `
-        <div class="card">
-            <img src="${f.image}">
-            <div class="card-body">
-                <div>${f.name}</div>
-                <div class="price">¥${Number(f.price).toLocaleString()}</div>
-                <div>${f.purchaseDate || ""}</div>
-                <button onclick="deleteFigure(${index})">削除</button>
-            </div>
+    list.innerHTML += `
+      <div class="card">
+        <div class="card-body">
+          <div>${data.name}</div>
+          <div class="price">¥${data.price.toLocaleString()}</div>
         </div>
-        `;
-    });
+      </div>`;
+  });
 
-    document.getElementById("totalValue").innerText =
-        "総資産: ¥" + total.toLocaleString();
+  document.getElementById("totalValue").innerText =
+    "総資産: ¥" + total.toLocaleString();
 }
 
-function addFigure(){
-    const name = document.getElementById("name").value;
-    const price = document.getElementById("price").value;
-    const purchaseDate = document.getElementById("purchaseDate").value;
-    const imageFile = document.getElementById("image").files[0];
-
-    if(!name || !price || !imageFile){
-        alert("必須項目を入力してください");
-        return;
-    }
-
-    const reader = new FileReader();
-    reader.onload = function(e){
-        figures.push({
-            name,
-            price,
-            purchaseDate,
-            image:e.target.result
-        });
-
-        saveData();
-        render();
-    };
-    reader.readAsDataURL(imageFile);
-}
-
-function deleteFigure(index){
-    figures.splice(index,1);
-    saveData();
-    render();
-}
-
-render();
+loadFigures();
 
 </script>
-
-</body>
-</html>
