@@ -42,6 +42,7 @@ header{
   margin-top:15px;
   border-radius:10px;
   box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  position: relative;
 }
 
 .card img{
@@ -55,6 +56,25 @@ header{
 button{
   padding:6px 12px;
   cursor:pointer;
+  border:none;
+  border-radius:5px;
+}
+
+.deleteBtn{
+  background:#e74c3c;
+  color:white;
+  margin-top:8px;
+}
+
+.deleteBtn:hover{
+  background:#c0392b;
+}
+
+input{
+  margin-right:8px;
+  padding:6px 10px;
+  border-radius:5px;
+  border:1px solid #ccc;
 }
 </style>
 </head>
@@ -88,7 +108,7 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, getDocs, query, where 
+  getFirestore, collection, addDoc, getDocs, query, where, doc, deleteDoc 
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { 
   getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
@@ -137,6 +157,7 @@ onAuthStateChanged(auth, (user) => {
     loadFigures();
 
   } else {
+    currentUser = null;
     userArea.innerHTML = "";
     document.getElementById("appArea").style.display = "none";
     document.getElementById("loginArea").style.display = "block";
@@ -181,8 +202,9 @@ async function loadFigures(){
   list.innerHTML = "";
   let total = 0;
 
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
+    const docId = docSnap.id;
     total += data.price;
 
     const imageSrc = data.imageUrl && data.imageUrl !== ""
@@ -194,12 +216,27 @@ async function loadFigures(){
         <img src="${imageSrc}">
         <div><strong>${data.name}</strong></div>
         <div>¥${data.price.toLocaleString()}</div>
+        <button class="deleteBtn" onclick="deleteFigure('${docId}')">削除</button>
       </div>
     `;
   });
 
   document.getElementById("totalValue").innerText =
     "総資産: ¥" + total.toLocaleString();
+}
+
+// 削除ボタン用関数
+window.deleteFigure = async function(docId){
+  const confirmDelete = confirm("本当に削除しますか？");
+  if(!confirmDelete) return;
+
+  try {
+    await deleteDoc(doc(db, "figures", docId));
+    alert("削除しました");
+    loadFigures();
+  } catch (error) {
+    console.error("削除エラー:", error);
+  }
 }
 
 </script>
