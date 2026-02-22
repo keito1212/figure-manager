@@ -36,10 +36,12 @@ header{
 }
 
 input, select{
-  margin-right:8px;
+  margin-top:5px;
+  margin-bottom:10px;
   padding:6px 10px;
   border-radius:5px;
   border:1px solid #ccc;
+  width:100%;
 }
 
 button{
@@ -197,10 +199,9 @@ select{
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, orderBy, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, updateDoc, deleteDoc, doc, query, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
   authDomain: "figure-manager-ee77e.firebaseapp.com",
@@ -217,7 +218,6 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
-// 初期データ
 const brandOptions = ["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ","カプコン","バンプレスト","コナミ","アゾンインターナショナル"];
 const placeOptions = ["未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店","ホビーショップ","トイザらス","イベント・ワンフェス","海外通販","リサイクルショップ","ヤフーフリマ"];
 
@@ -227,7 +227,6 @@ brandOptions.forEach(b=>brandSelect.innerHTML+=`<option value="${b}">${b}</optio
 const placeSelect = document.getElementById("purchasePlace");
 placeOptions.forEach(p=>placeSelect.innerHTML+=`<option value="${p}">${p}</option>`);
 
-// ログイン/ログアウト
 window.login = async ()=>{ await signInWithPopup(auth, provider); }
 window.logout = async ()=>{ await signOut(auth); }
 
@@ -251,7 +250,6 @@ onAuthStateChanged(auth, (user)=>{
   }
 });
 
-// 商品追加
 document.getElementById("addBtn").onclick = async ()=>{
   const name = document.getElementById("name").value.trim();
   const price = Number(document.getElementById("price").value);
@@ -280,7 +278,6 @@ document.getElementById("addBtn").onclick = async ()=>{
   loadFigures();
 }
 
-// 並べ替え・状態フィルタ
 document.getElementById("sortSelect").onchange=loadFigures;
 document.querySelectorAll(".statusFilter input").forEach(cb=>cb.onchange=loadFigures);
 
@@ -293,11 +290,9 @@ async function loadFigures(){
     if(data.uid===currentUser.uid) figures.push({id:docSnap.id,...data});
   });
 
-  // 状態フィルタ
   const checkedStatus = Array.from(document.querySelectorAll(".statusFilter input:checked")).map(c=>c.value);
   figures = figures.filter(f=>checkedStatus.includes(f.status));
 
-  // 並べ替え
   const sortValue = document.getElementById("sortSelect").value;
   figures.sort((a,b)=>{
     if(sortValue==="nameAsc") return a.name.localeCompare(b.name);
@@ -335,19 +330,19 @@ const modalClose=document.getElementById("modalClose");
 function openModal(f){
   modal.style.display="block";
   modalBody.innerHTML=`
-    <label>商品名</label><input id="modalName" value="${f.name}">
-    <label>価格</label><input id="modalPrice" type="number" step="100" value="${f.price}">
-    <label>画像URL</label><input id="modalImage" value="${f.imageUrl}">
-    <label>メーカー / ブランド</label>
+    <label>商品名</label><br><input id="modalName" value="${f.name}"><br>
+    <label>価格</label><br><input id="modalPrice" type="number" step="100" value="${f.price}"><br>
+    <label>画像URL</label><br><input id="modalImage" value="${f.imageUrl}"><br>
+    <label>メーカー / ブランド</label><br>
     <select id="modalBrand">
       ${brandOptions.map(b=>`<option value="${b}" ${b===f.brand?"selected":""}>${b}</option>`).join('')}
-    </select>
-    <label>購入日</label><input id="modalDate" type="date" value="${f.purchaseDate||''}">
-    <label>購入場所</label>
+    </select><br>
+    <label>購入日</label><br><input id="modalDate" type="date" value="${f.purchaseDate||''}"><br>
+    <label>購入場所</label><br>
     <select id="modalPlace">
       ${placeOptions.map(p=>`<option value="${p}" ${p===f.purchasePlace?"selected":""}>${p}</option>`).join('')}
-    </select>
-    <label>状態</label>
+    </select><br>
+    <label>状態</label><br>
     <select id="modalStatus">
       <option value="owned" ${f.status==="owned"?"selected":""}>所持</option>
       <option value="unowned" ${f.status==="unowned"?"selected":""}>未所持</option>
@@ -384,7 +379,7 @@ function openModal(f){
 // モーダル閉じる
 modalClose.onclick=()=>{ modal.style.display="none"; }
 window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
-</script>
 
+</script>
 </body>
 </html>
