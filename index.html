@@ -36,17 +36,43 @@ header{
   padding:30px;
 }
 
-.card{
-  background:white;
-  padding:15px;
-  margin-top:10px;
-  border-radius:8px;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+input{
+  margin-right:8px;
+  padding:6px 10px;
+  border-radius:5px;
+  border:1px solid #ccc;
 }
 
 button{
   padding:6px 12px;
   cursor:pointer;
+  border:none;
+  border-radius:5px;
+}
+
+/* 商品リストをグリッド表示 */
+#figureList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.card{
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.card img{
+  width:100%;
+  aspect-ratio:1/1;
+  object-fit:cover;
+  border-radius:8px;
+  margin-bottom:10px;
 }
 </style>
 </head>
@@ -67,6 +93,7 @@ button{
   <div id="appArea" style="display:none;">
     <input id="name" placeholder="商品名">
     <input id="price" type="number" placeholder="価格">
+    <input id="imageUrl" placeholder="画像URL（任意）">
     <button onclick="addFigure()">追加</button>
 
     <h3 id="totalValue">総資産: ¥0</h3>
@@ -79,12 +106,13 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, getDocs, query, where 
+  getFirestore, collection, addDoc, getDocs, query
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { 
   getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
+// Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
   authDomain: "figure-manager-ee77e.firebaseapp.com",
@@ -101,6 +129,7 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
+// ログイン/ログアウト
 window.login = async function(){
   await signInWithPopup(auth, provider);
 }
@@ -109,13 +138,13 @@ window.logout = async function(){
   await signOut(auth);
 }
 
+// 認証状態変更
 onAuthStateChanged(auth, (user) => {
   const userArea = document.getElementById("userArea");
 
   if (user) {
     currentUser = user;
 
-    // 右上表示
     userArea.innerHTML = `
       <div class="userBox">
         <img src="${user.photoURL}">
@@ -129,53 +158,79 @@ onAuthStateChanged(auth, (user) => {
     loadFigures();
 
   } else {
+    currentUser = null;
     userArea.innerHTML = "";
     document.getElementById("appArea").style.display = "none";
     document.getElementById("loginArea").style.display = "block";
   }
 });
 
+// フィギュア追加
 window.addFigure = async function(){
-  const name = document.getElementById("name").value;
-  const price = document.getElementById("price").value;
+
+  let name = document.getElementById("name").value.trim();
+  let price = document.getElementById("price").value.trim();
+  let imageUrl = document.getElementById("imageUrl").value.trim();
 
   if(!name || !price){
     alert("入力してください");
     return;
   }
 
+  // Gyazo URL 自動変換
+  const gyazoMatch = imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/);
+  if(gyazoMatch) {
+    imageUrl = `https://i.gyazo.com/${gyazoMatch[1]}.png`;
+  }
+
   await addDoc(collection(db, "figures"), {
     uid: currentUser.uid,
     name,
     price: Number(price),
+    imageUrl: imageUrl || "",
     createdAt: new Date()
   });
 
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
+  document.getElementById("imageUrl").value = "";
+
   loadFigures();
 }
 
+// フィギュア一覧読み込み
 async function loadFigures(){
-  const q = query(
-    collection(db, "figures"),
-    where("uid", "==", currentUser.uid)
-  );
-
+  const q = query(collection(db, "figures"));
   const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
   list.innerHTML = "";
   let total = 0;
 
-  querySnapshot.forEach((doc) => {
-    const data = doc.data();
+  querySnapshot.forEach((docSnap) => {
+    const data = docSnap.data();
     total += data.price;
 
-    list.innerHTML += `
-      <div class="card">
-        ${data.name} - ¥${data.price.toLocaleString()}
-      </div>
-    `;
+    const imageSrc = data.imageUrl && data.imageUrl !== ""
+      ? data.imageUrl
+      : "https://via.placeholder.com/600x400?text=No+Image";
+
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const img = document.createElement("img");
+    img.src = imageSrc;
+
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${data.name}</strong>`;
+
+    const price = document.createElement("div");
+    price.textContent = `¥${data.price.toLocaleString()}`;
+
+    card.appendChild(img);
+    card.appendChild(title);
+    card.appendChild(price);
+
+    list.appendChild(card);
   });
 
   document.getElementById("totalValue").innerText =
