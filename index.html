@@ -69,7 +69,7 @@ button{
 
 .card img{
   width:100%;
-  aspect-ratio:1/1; /* 正方形に近づける */
+  aspect-ratio:1/1; /* 正方形っぽく */
   object-fit:cover;
   border-radius:8px;
   margin-bottom:10px;
@@ -241,10 +241,17 @@ async function loadFigures(){
     const delBtn = document.createElement("button");
     delBtn.className = "deleteBtn";
     delBtn.textContent = "削除";
+    // 🔹 確実に動作するイベントリスナー
     delBtn.addEventListener("click", async () => {
-      if(!confirm("本当に削除しますか？")) return;
-      await deleteDoc(doc(db, "figures", docId));
-      loadFigures();
+      try {
+        if(!confirm("本当に削除しますか？")) return;
+        const docRef = doc(db, "figures", docId);
+        await deleteDoc(docRef);
+        loadFigures();
+      } catch (error) {
+        console.error("削除エラー:", error);
+        alert("削除できませんでした");
+      }
     });
 
     card.appendChild(img);
