@@ -36,21 +36,11 @@ header{
   padding:30px;
 }
 
-.card{
-  background:white;
-  padding:15px;
-  margin-top:15px;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  position: relative;
-}
-
-.card img{
-  width:100%;
-  max-height:250px;
-  object-fit:cover;
-  border-radius:8px;
-  margin-bottom:10px;
+input{
+  margin-right:8px;
+  padding:6px 10px;
+  border-radius:5px;
+  border:1px solid #ccc;
 }
 
 button{
@@ -58,6 +48,31 @@ button{
   cursor:pointer;
   border:none;
   border-radius:5px;
+}
+
+/* 商品リストをグリッド表示 */
+#figureList {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
+  gap: 15px;
+}
+
+.card{
+  background:white;
+  padding:15px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+  display:flex;
+  flex-direction:column;
+  align-items:center;
+}
+
+.card img{
+  width:100%;
+  aspect-ratio:1/1; /* 正方形に近づける */
+  object-fit:cover;
+  border-radius:8px;
+  margin-bottom:10px;
 }
 
 .deleteBtn{
@@ -70,12 +85,6 @@ button{
   background:#c0392b;
 }
 
-input{
-  margin-right:8px;
-  padding:6px 10px;
-  border-radius:5px;
-  border:1px solid #ccc;
-}
 </style>
 </head>
 
@@ -130,6 +139,7 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
+// --- ログイン/ログアウト ---
 window.login = async function(){
   await signInWithPopup(auth, provider);
 }
@@ -138,6 +148,7 @@ window.logout = async function(){
   await signOut(auth);
 }
 
+// --- 認証状態変更 ---
 onAuthStateChanged(auth, (user) => {
   const userArea = document.getElementById("userArea");
 
@@ -164,6 +175,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
+// --- フィギュア追加 ---
 window.addFigure = async function(){
 
   let name = document.getElementById("name").value.trim();
@@ -196,13 +208,9 @@ window.addFigure = async function(){
   loadFigures();
 }
 
+// --- フィギュア一覧読み込み ---
 async function loadFigures(){
-
-  const q = query(
-    collection(db, "figures"),
-    where("uid", "==", currentUser.uid)
-  );
-
+  const q = query(collection(db, "figures"), where("uid", "==", currentUser.uid));
   const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
   list.innerHTML = "";
@@ -217,32 +225,38 @@ async function loadFigures(){
       ? data.imageUrl
       : "https://via.placeholder.com/600x400?text=No+Image";
 
-    list.innerHTML += `
-      <div class="card">
-        <img src="${imageSrc}">
-        <div><strong>${data.name}</strong></div>
-        <div>¥${data.price.toLocaleString()}</div>
-        <button class="deleteBtn" onclick="deleteFigure('${docId}')">削除</button>
-      </div>
-    `;
+    // カード作成
+    const card = document.createElement("div");
+    card.className = "card";
+
+    const img = document.createElement("img");
+    img.src = imageSrc;
+
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${data.name}</strong>`;
+
+    const price = document.createElement("div");
+    price.textContent = `¥${data.price.toLocaleString()}`;
+
+    const delBtn = document.createElement("button");
+    delBtn.className = "deleteBtn";
+    delBtn.textContent = "削除";
+    delBtn.addEventListener("click", async () => {
+      if(!confirm("本当に削除しますか？")) return;
+      await deleteDoc(doc(db, "figures", docId));
+      loadFigures();
+    });
+
+    card.appendChild(img);
+    card.appendChild(title);
+    card.appendChild(price);
+    card.appendChild(delBtn);
+
+    list.appendChild(card);
   });
 
   document.getElementById("totalValue").innerText =
     "総資産: ¥" + total.toLocaleString();
-}
-
-// 削除ボタン用関数
-window.deleteFigure = async function(docId){
-  const confirmDelete = confirm("本当に削除しますか？");
-  if(!confirmDelete) return;
-
-  try {
-    await deleteDoc(doc(db, "figures", docId));
-    alert("削除しました");
-    loadFigures();
-  } catch (error) {
-    console.error("削除エラー:", error);
-  }
 }
 
 </script>
