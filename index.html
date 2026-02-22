@@ -41,17 +41,19 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 #deleteBtn{ background:#e74c3c; color:white; }
 #closeBtn{ background:#ccc; }
 
-/* チェックボックス横並び */
+/* チェックボックス横並び 修正版 */
 .statusFilterContainer{
   display:flex;
-  gap:15px;
+  gap:15px;           /* 項目間のスペース */
   margin:10px 0 20px 0;
+  flex-wrap: nowrap;   /* 改行させない */
 }
 .statusFilterContainer label{
   display:flex;
   align-items:center;
-  gap:5px;
-  margin:0;
+  gap:5px;             /* チェックと文字の隙間 */
+  margin:0;            /* 不要な余白を削除 */
+  white-space: nowrap; /* 文字を改行させない */
 }
 </style>
 </head>
