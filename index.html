@@ -14,7 +14,10 @@ input, select{ margin:5px 0; padding:6px 10px; border-radius:5px; border:1px sol
 button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
 #addBtn{ background:#e74c3c; color:white; }
 
-#figureList { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 15px; }
+h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
+
+.gridContainer { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; }
+
 .card{ background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; cursor:pointer; }
 .card img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px; }
 .card.unowned{ background:#e0e0e0; }
@@ -61,8 +64,8 @@ button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
     <label>購入場所（任意）</label><input id="purchasePlace" placeholder="購入場所">
     <label>状態 / 保存状態</label>
     <select id="status">
-      <option value="unowned">未所持</option>
       <option value="owned">所持</option>
+      <option value="unowned">未所持</option>
       <option value="sold">売却済み</option>
     </select>
     <button id="addBtn" onclick="addFigure()">追加</button>
@@ -79,7 +82,24 @@ button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
       <option value="priceLow">価格順（低い→高い）</option>
     </select>
 
-    <div id="figureList"></div>
+    <!-- 状態フィルタ -->
+    <div>
+      <label><input type="checkbox" class="statusFilter" value="owned" checked> 所持</label>
+      <label><input type="checkbox" class="statusFilter" value="unowned" checked> 未所持</label>
+      <label><input type="checkbox" class="statusFilter" value="sold" checked> 売却済み</label>
+    </div>
+
+    <!-- 商品リスト -->
+    <div id="figureListContainer">
+      <h4 class="stateHeader">所持</h4>
+      <div id="ownedList" class="gridContainer"></div>
+
+      <h4 class="stateHeader">未所持</h4>
+      <div id="unownedList" class="gridContainer"></div>
+
+      <h4 class="stateHeader">売却済み</h4>
+      <div id="soldList" class="gridContainer"></div>
+    </div>
   </div>
 </div>
 
@@ -94,8 +114,8 @@ button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
     <label>購入場所</label><input id="modalPurchasePlace">
     <label>状態 / 保存状態</label>
     <select id="modalStatus">
-      <option value="unowned">未所持</option>
       <option value="owned">所持</option>
+      <option value="unowned">未所持</option>
       <option value="sold">売却済み</option>
     </select>
     <label>現在の画像</label><img id="modalImage" src="" alt="現在の画像">
@@ -168,15 +188,22 @@ window.addFigure = async ()=>{
   loadFigures();
 }
 
-// 商品一覧表示
+// 商品一覧表示（状態別 + フィルタ対応）
 async function loadFigures(){
   const sort=document.getElementById("sortSelect").value;
+  const statusFilters=[...document.querySelectorAll(".statusFilter:checked")].map(cb=>cb.value);
+
   const q= query(collection(db,"figures"));
   const querySnapshot=await getDocs(q);
-  const list=document.getElementById("figureList");
-  list.innerHTML="";
-  let items=[], total=0;
 
+  const lists = {
+    owned: document.getElementById("ownedList"),
+    unowned: document.getElementById("unownedList"),
+    sold: document.getElementById("soldList")
+  };
+  for(const key in lists){ lists[key].innerHTML=""; }
+
+  let items=[], total=0;
   querySnapshot.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid!==currentUser.uid) return;
@@ -197,6 +224,7 @@ async function loadFigures(){
   });
 
   items.forEach(data=>{
+    if(!statusFilters.includes(data.status)) return;
     total+=data.price;
     const card=document.createElement("div");
     card.className="card "+data.status;
@@ -206,7 +234,7 @@ async function loadFigures(){
     if(data.brand){ const brand=document.createElement("div"); brand.textContent=data.brand; card.appendChild(brand); }
     card.appendChild(img); card.appendChild(title); card.appendChild(price);
     card.onclick=()=>showModal(data.id,data);
-    list.appendChild(card);
+    lists[data.status].appendChild(card);
   });
 
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
@@ -228,11 +256,8 @@ function showModal(id,data){
 
 // モーダル閉じる
 document.getElementById("closeBtn").onclick=()=>{ document.getElementById("detailModal").style.display="none"; }
-
 // モーダル外クリックで閉じる
-document.getElementById("detailModal").onclick=(e)=>{
-  if(e.target.id==="detailModal") document.getElementById("detailModal").style.display="none";
-}
+document.getElementById("detailModal").onclick=(e)=>{ if(e.target.id==="detailModal") document.getElementById("detailModal").style.display="none"; }
 
 // 更新
 document.getElementById("updateBtn").onclick=async ()=>{
@@ -262,8 +287,9 @@ document.getElementById("deleteBtn").onclick=async ()=>{
   }
 }
 
-// 並べ替え選択変更で自動更新
+// 並べ替え & 状態フィルタ変更で自動更新
 document.getElementById("sortSelect").addEventListener("change",loadFigures);
+document.querySelectorAll(".statusFilter").forEach(cb=>cb.addEventListener("change",loadFigures));
 
 </script>
 </body>
