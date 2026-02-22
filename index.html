@@ -14,7 +14,7 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 #figureList{display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;}
 .card{background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;}
 .card img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px;}
-.card .marketPrice{color:#3498db; margin-top:5px; font-weight:bold; font-size:0.9em;}
+.card .marketPrice{margin-top:5px; font-size:0.9em; color:#3498db;}
 /* モーダル */
 .modal{display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.5);}
 .modalContent{background:white; margin:50px auto; padding:20px; border-radius:8px; max-width:500px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
@@ -149,7 +149,6 @@ const modal = document.getElementById("figureModal");
 const modalClose = document.getElementById("modalClose");
 const modalBody = document.getElementById("modalBody");
 
-// --- Googleログイン ---
 window.login = async()=>{ await signInWithPopup(auth, provider); }
 window.logout = async()=>{ await signOut(auth); }
 
@@ -169,7 +168,6 @@ onAuthStateChanged(auth, user=>{
   }
 });
 
-// --- 商品追加 ---
 window.addFigure=async()=>{
   const name=document.getElementById("name").value.trim();
   const price=Number(document.getElementById("price").value);
@@ -184,22 +182,31 @@ window.addFigure=async()=>{
   loadFigures();
 }
 
-// --- 並べ替え・フィルター ---
+// 並べ替え・フィルター変更時もリアルタイム
 document.getElementById("sortSelect").addEventListener("change", loadFigures);
 document.getElementById("filterOwned").addEventListener("change", loadFigures);
 document.getElementById("filterUnowned").addEventListener("change", loadFigures);
 document.getElementById("filterSold").addEventListener("change", loadFigures);
 
-// --- 相場価格を取得する関数（サンプル構造） ---
 async function fetchMarketPrice(itemName){
-  // TODO: 実際のAPI URLに置き換え
-  // 例: const res = await fetch(`https://api.example.com/price?name=${encodeURIComponent(itemName)}`);
-  // const data = await res.json();
-  // return data.price;
-  return Math.floor(Math.random()*5000)+1000; // デモ用ランダム価格
+  // 楽天商品検索API例
+  const APP_ID = "YOUR_RAKUTEN_APP_ID"; // ←ここに楽天APIアプリID
+  const url = `https://app.rakuten.co.jp/services/api/IchibaItem/Search/20170706?format=json&applicationId=${APP_ID}&keyword=${encodeURIComponent(itemName)}&hits=1`;
+
+  try{
+    const res = await fetch(url);
+    const data = await res.json();
+    if(data.Items && data.Items.length > 0){
+      return Number(data.Items[0].Item.itemPrice);
+    }else{
+      return 0;
+    }
+  }catch(e){
+    console.error("API取得エラー:", e);
+    return 0;
+  }
 }
 
-// --- 商品表示 ---
 async function loadFigures(){
   const querySnapshot = await getDocs(collection(db,"figures"));
   const list = document.getElementById("figureList");
@@ -241,21 +248,24 @@ async function loadFigures(){
     const img=document.createElement("img"); img.src=f.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
     const title=document.createElement("div"); title.innerHTML=`<strong>${f.name}</strong>`;
     const price=document.createElement("div"); price.textContent=`¥${f.price.toLocaleString()}`;
-    const marketPriceDiv=document.createElement("div"); marketPriceDiv.className="marketPrice"; marketPriceDiv.textContent="取得中...";
-    card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketPriceDiv);
+    const marketPrice=document.createElement("div"); marketPrice.className="marketPrice"; marketPrice.textContent="相場取得中...";
+    card.appendChild(img); card.appendChild(title); card.appendChild(price); card.appendChild(marketPrice);
+
     card.onclick=()=>openModal(f);
+
     list.appendChild(card);
 
-    // 相場価格を非同期で取得して表示
+    // 非同期で相場価格取得
     fetchMarketPrice(f.name).then(mp=>{
-      marketPriceDiv.textContent=`相場: ¥${mp.toLocaleString()}`;
+      if(mp>0) marketPrice.textContent=`現在の相場: ¥${mp.toLocaleString()}`;
+      else marketPrice.textContent=`相場情報なし`;
     });
   }
 
   document.getElementById("totalValue").innerText="合計: ¥"+total.toLocaleString();
 }
 
-// --- モーダル ---
+// モーダル
 function openModal(f){
   modal.style.display="block";
   modalBody.innerHTML=`
@@ -274,17 +284,11 @@ function openModal(f){
       <option value="sold" ${f.status==="sold"?"selected":""}>売却済み</option>
     </select>
     <div class="modalImgContainer"><img src="${f.imageUrl||'https://via.placeholder.com/300x300?text=No+Image'}" id="modalImgPreview"></div>
-    <div class="modalImgContainer"><div id="modalMarketPrice">相場: 取得中...</div></div>
     <div style="margin-top:10px;">
       <button id="modalUpdate" style="background:#3498db;color:white;">更新</button>
       <button id="modalDelete" style="background:#e74c3c;color:white;">削除</button>
     </div>
   `;
-
-  // モーダル相場価格取得
-  fetchMarketPrice(f.name).then(mp=>{
-    document.getElementById("modalMarketPrice").textContent=`相場: ¥${mp.toLocaleString()}`;
-  });
 
   document.getElementById("modalUpdate").onclick=async ()=>{
     const name=document.getElementById("modalName").value.trim();
@@ -305,7 +309,7 @@ function openModal(f){
   }
 }
 
-// --- モーダル閉じる ---
+// モーダル閉じる
 modalClose.onclick=()=>{ modal.style.display="none"; }
 window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
 
