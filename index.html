@@ -2,38 +2,36 @@
 <html lang="ja">
 <head>
   <meta charset="UTF-8">
-  <title>Figure Manager</title>
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-
-  <style>
-    body { font-family: Arial; padding: 20px; }
-    input { padding: 8px; margin: 5px 0; }
-    button { padding: 8px 12px; margin: 5px 0; }
-    .card { border: 1px solid #ccc; margin-top: 10px; }
-    .card-body { padding: 10px; }
-    .price { color: green; font-weight: bold; }
-  </style>
+  <title>フィギュア管理</title>
 </head>
 <body>
 
-<h2>フィギュア管理</h2>
+<h1>フィギュア管理</h1>
 
-<button onclick="login()">Googleログイン</button>
-
-<div>
-  <input id="name" placeholder="フィギュア名">
-  <input id="price" type="number" placeholder="価格">
-  <button onclick="addFigure()">追加</button>
+<!-- ログインエリア -->
+<div id="loginArea">
+  <button onclick="login()">Googleログイン</button>
 </div>
 
-<h3 id="totalValue">総資産: ¥0</h3>
-<div id="figureList"></div>
+<!-- アプリ本体 -->
+<div id="appArea" style="display:none;">
+  <input id="name" placeholder="商品名">
+  <input id="price" type="number" placeholder="価格">
+  <button onclick="addFigure()">追加</button>
+
+  <h3 id="totalValue">総資産: ¥0</h3>
+  <div id="figureList"></div>
+</div>
 
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { 
+  getFirestore, collection, addDoc, getDocs, query, where 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { 
+  getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
@@ -41,8 +39,7 @@ const firebaseConfig = {
   projectId: "figure-manager-ee77e",
   storageBucket: "figure-manager-ee77e.firebasestorage.app",
   messagingSenderId: "869184722518",
-  appId: "1:869184722518:web:3c3c5cc645734707ec8df7",
-  measurementId: "G-FD6EFD30CW"
+  appId: "1:869184722518:web:3c3c5cc645734707ec8df7"
 };
 
 const app = initializeApp(firebaseConfig);
@@ -50,11 +47,23 @@ const db = getFirestore(app);
 const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
+let currentUser = null;
+
 window.login = async function(){
   await signInWithPopup(auth, provider);
-  alert("ログイン成功");
-  loadFigures();
 }
+
+onAuthStateChanged(auth, (user) => {
+  if (user) {
+    currentUser = user;
+    document.getElementById("appArea").style.display = "block";
+    document.getElementById("loginArea").style.display = "none";
+    loadFigures();
+  } else {
+    document.getElementById("appArea").style.display = "none";
+    document.getElementById("loginArea").style.display = "block";
+  }
+});
 
 window.addFigure = async function(){
   const name = document.getElementById("name").value;
@@ -66,16 +75,25 @@ window.addFigure = async function(){
   }
 
   await addDoc(collection(db, "figures"), {
+    uid: currentUser.uid,
     name,
     price: Number(price),
     createdAt: new Date()
   });
 
+  document.getElementById("name").value = "";
+  document.getElementById("price").value = "";
+
   loadFigures();
 }
 
 async function loadFigures(){
-  const querySnapshot = await getDocs(collection(db, "figures"));
+  const q = query(
+    collection(db, "figures"),
+    where("uid", "==", currentUser.uid)
+  );
+
+  const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
   list.innerHTML = "";
   let total = 0;
@@ -85,19 +103,15 @@ async function loadFigures(){
     total += data.price;
 
     list.innerHTML += `
-      <div class="card">
-        <div class="card-body">
-          <div>${data.name}</div>
-          <div class="price">¥${data.price.toLocaleString()}</div>
-        </div>
-      </div>`;
+      <div>
+        ${data.name} - ¥${data.price.toLocaleString()}
+      </div>
+    `;
   });
 
   document.getElementById("totalValue").innerText =
     "総資産: ¥" + total.toLocaleString();
 }
-
-loadFigures();
 
 </script>
 
