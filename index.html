@@ -19,7 +19,6 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 .gridContainer { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; }
 
 .card{ background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; cursor:pointer; }
-.card img{ width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px; }
 .card.unowned{ background:#e0e0e0; }
 .card.owned{ background:#d4edda; }
 .card.sold{ background:#f8d7da; }
@@ -77,22 +76,14 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 
     <!-- メーカー / ブランド -->
     <label>メーカー / ブランド</label>
-    <select id="brandSelect" onchange="toggleBrandInput()">
-      <option value="">選択してください</option>
-      <option value="other">その他</option>
-    </select>
-    <input id="brandInput" placeholder="新しいメーカーを入力" style="display:none;">
+    <select id="brandSelect"></select>
 
     <!-- 購入日 -->
     <label>購入日</label><input id="purchaseDate" type="date">
 
     <!-- 購入場所 -->
     <label>購入場所</label>
-    <select id="placeSelect" onchange="togglePlaceInput()">
-      <option value="">選択してください</option>
-      <option value="other">その他</option>
-    </select>
-    <input id="placeInput" placeholder="新しい購入場所を入力" style="display:none;">
+    <select id="placeSelect"></select>
 
     <!-- 状態 -->
     <label>状態 / 保存状態</label>
@@ -161,7 +152,7 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, updateDoc, query, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
@@ -193,12 +184,15 @@ onAuthStateChanged(auth, async user=>{
   if(user){
     currentUser=user;
     userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
-    
-    // 初期データ登録
-    await registerInitialOptions();
     document.getElementById("appArea").style.display="block";
     document.getElementById("loginArea").style.display="none";
-    await loadSelectOptions();
+
+    // 初期選択肢ロード
+    const brandSelect=document.getElementById("brandSelect");
+    initialBrands.forEach(b=>{ const opt=document.createElement("option"); opt.value=b; opt.textContent=b; brandSelect.appendChild(opt); });
+    const placeSelect=document.getElementById("placeSelect");
+    initialPlaces.forEach(p=>{ const opt=document.createElement("option"); opt.value=p; opt.textContent=p; placeSelect.appendChild(opt); });
+
     loadFigures();
   }else{
     currentUser=null;
@@ -216,46 +210,6 @@ document.getElementById("closeBtn").onclick=()=>{ document.getElementById("detai
 document.getElementById("sortSelect").addEventListener("change",loadFigures);
 document.querySelectorAll(".statusFilter").forEach(cb=>cb.addEventListener("change",loadFigures));
 
-// メーカー / 購入場所選択切替
-function toggleBrandInput(){ document.getElementById("brandInput").style.display = document.getElementById("brandSelect").value==="other"?"block":"none"; }
-function togglePlaceInput(){ document.getElementById("placeInput").style.display = document.getElementById("placeSelect").value==="other"?"block":"none"; }
-
-// 初期選択肢登録
-async function registerInitialOptions(){
-  const brandCol = collection(db,"brands");
-  const placeCol = collection(db,"places");
-  const brandSnap = await getDocs(brandCol);
-  if(brandSnap.empty){ for(const name of initialBrands) await addDoc(brandCol,{name}); }
-  const placeSnap = await getDocs(placeCol);
-  if(placeSnap.empty){ for(const name of initialPlaces) await addDoc(placeCol,{name}); }
-}
-
-// Firestoreから選択肢ロード
-async function loadSelectOptions(){
-  const brandSelect=document.getElementById("brandSelect");
-  const placeSelect=document.getElementById("placeSelect");
-  brandSelect.querySelectorAll("option:not([value=''],[value='other'])").forEach(opt=>opt.remove());
-  placeSelect.querySelectorAll("option:not([value=''],[value='other'])").forEach(opt=>opt.remove());
-
-  const brandSnapshot=await getDocs(collection(db,"brands"));
-  brandSnapshot.forEach(docSnap=>{
-    const opt=document.createElement("option");
-    opt.value=docSnap.data().name; opt.textContent=docSnap.data().name;
-    brandSelect.insertBefore(opt,brandSelect.querySelector('option[value="other"]'));
-  });
-
-  const placeSnapshot=await getDocs(collection(db,"places"));
-  placeSnapshot.forEach(docSnap=>{
-    const opt=document.createElement("option");
-    opt.value=docSnap.data().name; opt.textContent=docSnap.data().name;
-    placeSelect.insertBefore(opt,placeSelect.querySelector('option[value="other"]'));
-  });
-}
-
-// 登録値取得
-async function getBrandValue(){ const select=document.getElementById("brandSelect"); if(select.value==="other"){ const val=document.getElementById("brandInput").value.trim(); if(val){ await addDoc(collection(db,"brands"),{name:val}); return val; } return ""; } return select.value; }
-async function getPlaceValue(){ const select=document.getElementById("placeSelect"); if(select.value==="other"){ const val=document.getElementById("placeInput").value.trim(); if(val){ await addDoc(collection(db,"places"),{name:val}); return val; } return ""; } return select.value; }
-
 // 商品追加
 window.addFigure = async ()=>{
   const name=document.getElementById("name").value.trim();
@@ -267,17 +221,14 @@ window.addFigure = async ()=>{
     name,
     price:Number(price),
     imageUrl: document.getElementById("imageUrl").value.trim()||"",
-    brand: await getBrandValue(),
+    brand: document.getElementById("brandSelect").value,
     purchaseDate: document.getElementById("purchaseDate").value||"",
-    purchasePlace: await getPlaceValue(),
+    purchasePlace: document.getElementById("placeSelect").value,
     status: document.getElementById("status").value,
     createdAt: new Date()
   };
 
-  ["name","price","imageUrl","brandInput","purchaseDate","placeInput"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
-  document.getElementById("brandSelect").value="";
-  document.getElementById("placeSelect").value="";
-  await loadSelectOptions();
+  ["name","price","imageUrl","purchaseDate"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   loadFigures();
 }
 
