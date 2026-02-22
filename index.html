@@ -71,14 +71,13 @@ button{ padding:6px 12px; cursor:pointer; border:none; border-radius:5px; }
 
     <!-- 並べ替え -->
     <label>並べ替え</label>
-    <select id="sortSelect">
+    <select id="sortSelect" onchange="loadFigures()">
       <option value="newest">登録順（新しい→古い）</option>
       <option value="oldest">登録順（古い→新しい）</option>
       <option value="name">名前順（昇順）</option>
       <option value="priceHigh">価格順（高い→低い）</option>
       <option value="priceLow">価格順（低い→高い）</option>
     </select>
-    <button onclick="loadFigures()">並べ替え反映</button>
 
     <div id="figureList"></div>
   </div>
@@ -149,6 +148,7 @@ onAuthStateChanged(auth, user=>{
   }
 });
 
+// 商品追加
 window.addFigure = async ()=>{
   const name=document.getElementById("name").value.trim();
   const price=document.getElementById("price").value.trim();
@@ -168,6 +168,7 @@ window.addFigure = async ()=>{
   loadFigures();
 }
 
+// 商品一覧表示
 async function loadFigures(){
   const sort=document.getElementById("sortSelect").value;
   const q= query(collection(db,"figures"));
@@ -211,6 +212,7 @@ async function loadFigures(){
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
 }
 
+// モーダル表示
 function showModal(id,data){
   pendingId=id;
   document.getElementById("modalName").value=data.name;
@@ -224,8 +226,15 @@ function showModal(id,data){
   document.getElementById("detailModal").style.display="flex";
 }
 
+// モーダル閉じる
 document.getElementById("closeBtn").onclick=()=>{ document.getElementById("detailModal").style.display="none"; }
 
+// モーダル外クリックで閉じる
+document.getElementById("detailModal").onclick=(e)=>{
+  if(e.target.id==="detailModal") document.getElementById("detailModal").style.display="none";
+}
+
+// 更新
 document.getElementById("updateBtn").onclick=async ()=>{
   if(!pendingId) return;
   const name=document.getElementById("modalName").value.trim();
@@ -243,6 +252,7 @@ document.getElementById("updateBtn").onclick=async ()=>{
   loadFigures();
 }
 
+// 削除
 document.getElementById("deleteBtn").onclick=async ()=>{
   if(!pendingId) return;
   if(confirm("削除しますか？")){
@@ -251,6 +261,10 @@ document.getElementById("deleteBtn").onclick=async ()=>{
     loadFigures();
   }
 }
+
+// 並べ替え選択変更で自動更新
+document.getElementById("sortSelect").addEventListener("change",loadFigures);
+
 </script>
 </body>
 </html>
