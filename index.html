@@ -74,6 +74,50 @@ button{
   border-radius:8px;
   margin-bottom:10px;
 }
+
+/* モーダル */
+#confirmModal{
+  position: fixed;
+  top:0;
+  left:0;
+  width:100%;
+  height:100%;
+  background: rgba(0,0,0,0.5);
+  display: none;
+  justify-content: center;
+  align-items: center;
+  z-index: 1000;
+}
+
+#confirmModal .modalContent{
+  background:white;
+  padding:20px;
+  border-radius:8px;
+  text-align:center;
+  width:300px;
+}
+
+#confirmModal .modalButtons{
+  margin-top:15px;
+  display:flex;
+  justify-content: space-around;
+}
+
+#confirmModal button{
+  padding:6px 12px;
+  border-radius:5px;
+  border:none;
+  cursor:pointer;
+}
+
+#confirmModal .cancelBtn{
+  background:#ccc;
+}
+
+#confirmModal .deleteBtn{
+  background:#e74c3c;
+  color:white;
+}
 </style>
 </head>
 
@@ -102,6 +146,17 @@ button{
 
 </div>
 
+<!-- 削除確認モーダル -->
+<div id="confirmModal">
+  <div class="modalContent">
+    <div id="modalMessage">削除しますか？</div>
+    <div class="modalButtons">
+      <button class="cancelBtn" onclick="closeModal()">キャンセル</button>
+      <button class="deleteBtn" onclick="confirmDelete()">削除</button>
+    </div>
+  </div>
+</div>
+
 <script type="module">
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
@@ -128,6 +183,7 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser = null;
+let pendingDeleteId = null; // モーダルで削除対象を保持
 
 // ログイン/ログアウト
 window.login = async function(){
@@ -211,7 +267,6 @@ async function loadFigures(){
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
 
-    // 自分のフィギュアだけ表示
     if(data.uid !== currentUser.uid) return;
 
     total += data.price;
@@ -238,16 +293,8 @@ async function loadFigures(){
     deleteBtn.style.marginTop = "10px";
     deleteBtn.style.backgroundColor = "#e74c3c";
     deleteBtn.style.color = "white";
-    deleteBtn.onclick = async () => {
-      if(confirm(`「${data.name}」を削除しますか？`)){
-        try{
-          await deleteDoc(doc(db, "figures", docSnap.id));
-          loadFigures(); // 再読み込み
-        } catch(e) {
-          alert("削除に失敗しました: " + e.message);
-          console.error(e);
-        }
-      }
+    deleteBtn.onclick = () => {
+      showModal(docSnap.id, data.name);
     };
 
     card.appendChild(img);
@@ -260,6 +307,31 @@ async function loadFigures(){
 
   document.getElementById("totalValue").innerText =
     "総資産: ¥" + total.toLocaleString();
+}
+
+// モーダル操作
+function showModal(id, name){
+  pendingDeleteId = id;
+  document.getElementById("modalMessage").textContent = `「${name}」を削除しますか？`;
+  document.getElementById("confirmModal").style.display = "flex";
+}
+
+function closeModal(){
+  pendingDeleteId = null;
+  document.getElementById("confirmModal").style.display = "none";
+}
+
+window.confirmDelete = async function(){
+  if(pendingDeleteId){
+    try{
+      await deleteDoc(doc(db, "figures", pendingDeleteId));
+      closeModal();
+      loadFigures();
+    } catch(e){
+      alert("削除に失敗しました: " + e.message);
+      console.error(e);
+    }
+  }
 }
 
 </script>
