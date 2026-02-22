@@ -1,111 +1,202 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <title>Stock App</title>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
+  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
+  <style>
+    body {
+      font-family: Arial;
+      margin: 0;
+      background: #f4f6f9;
+    }
+
+    .dark {
+      background: #1e1e1e;
+      color: white;
+    }
+
+    header {
+      display: flex;
+      justify-content: space-between;
+      padding: 15px 20px;
+      background: #111;
+      color: white;
+      align-items: center;
+    }
+
+    .user-box {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .user-box img {
+      width: 32px;
+      border-radius: 50%;
+    }
+
+    button {
+      padding: 6px 10px;
+      border: none;
+      cursor: pointer;
+      border-radius: 5px;
+    }
+
+    .login-btn { background: #4285f4; color: white; }
+    .logout-btn { background: crimson; color: white; }
+    .dark-btn { background: #444; color: white; }
+
+    .container {
+      padding: 20px;
+    }
+
+    .card {
+      background: white;
+      padding: 15px;
+      border-radius: 10px;
+      margin-bottom: 15px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
+    }
+
+    .dark .card {
+      background: #2c2c2c;
+    }
+
+    .card img {
+      max-width: 100%;
+      border-radius: 8px;
+      margin-top: 10px;
+    }
+
+    .delete-btn {
+      background: crimson;
+      color: white;
+      margin-top: 10px;
+    }
+
+    input {
+      padding: 6px;
+      margin-right: 5px;
+    }
+  </style>
+</head>
+<body>
+
+<header>
+  <h2>📈 Stock Manager</h2>
+  <div class="user-box" id="userBox">
+    <button class="login-btn" onclick="login()">Googleログイン</button>
+  </div>
+</header>
+
+<div class="container">
+  <button class="dark-btn" onclick="toggleDark()">🌙 ダークモード</button>
+
+  <h3>銘柄追加</h3>
+  <input id="name" placeholder="銘柄名">
+  <input id="price" placeholder="価格">
+  <input id="imageUrl" placeholder="画像URL">
+  <button onclick="addStock()">追加</button>
+
+  <hr>
+
+  <div id="stockList"></div>
+</div>
+
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
+import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
+import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
-  authDomain: "figure-manager-ee77e.firebaseapp.com",
-  projectId: "figure-manager-ee77e",
-  storageBucket: "figure-manager-ee77e.firebasestorage.app",
-  messagingSenderId: "869184722518",
-  appId: "1:869184722518:web:3c3c5cc645734707ec8df7",
-  measurementId: "G-FD6EFD30CW"
+  apiKey: "ここにAPIキー",
+  authDomain: "ここにauthDomain",
+  projectId: "ここにprojectId",
 };
 
 const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
 const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const db = getFirestore(app);
 
-let currentUser = null;
+window.login = async function() {
+  const provider = new GoogleAuthProvider();
+  await signInWithPopup(auth, provider);
+}
+
+window.logout = async function() {
+  await signOut(auth);
+}
 
 onAuthStateChanged(auth, (user) => {
+  const userBox = document.getElementById("userBox");
+
   if (user) {
-    currentUser = user;
-    document.getElementById("userInfo").innerHTML = `
-      <img src="${user.photoURL}" class="avatar">
+    userBox.innerHTML = `
+      <img src="${user.photoURL}">
       <span>${user.displayName}</span>
-      <button onclick="logout()">ログアウト</button>
+      <button class="logout-btn" onclick="logout()">ログアウト</button>
     `;
-    loadFigures();
+    loadStocks();
   } else {
-    currentUser = null;
-    document.getElementById("userInfo").innerHTML = "";
+    userBox.innerHTML = `<button class="login-btn" onclick="login()">Googleログイン</button>`;
+    document.getElementById("stockList").innerHTML = "";
   }
 });
 
-window.login = async function(){
-  await signInWithPopup(auth, provider);
-};
-
-window.logout = async function(){
-  await signOut(auth);
-};
-
-window.addFigure = async function(){
-  if(!currentUser){
-    alert("ログインしてください");
-    return;
-  }
-
+window.addStock = async function() {
   const name = document.getElementById("name").value;
   const price = document.getElementById("price").value;
   const imageUrl = document.getElementById("imageUrl").value;
 
-  if(!name || !price){
-    alert("入力してください");
-    return;
-  }
+  if (!name) return alert("銘柄名を入力");
 
-  await addDoc(collection(db, "figures"), {
-    uid: currentUser.uid,
+  await addDoc(collection(db, "stocks"), {
     name,
-    price: Number(price),
-    imageUrl: imageUrl || "",
-    createdAt: new Date()
+    price,
+    imageUrl
   });
 
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
   document.getElementById("imageUrl").value = "";
 
-  loadFigures();
-};
+  loadStocks();
+}
 
-async function loadFigures(){
-  if(!currentUser) return;
-
-  const querySnapshot = await getDocs(collection(db, "figures"));
-  const list = document.getElementById("figureList");
+async function loadStocks() {
+  const querySnapshot = await getDocs(collection(db, "stocks"));
+  const list = document.getElementById("stockList");
   list.innerHTML = "";
-  let total = 0;
 
-  querySnapshot.forEach((d) => {
-    const data = d.data();
-    if(data.uid !== currentUser.uid) return;
-
-    total += data.price;
+  querySnapshot.forEach((docItem) => {
+    const data = docItem.data();
 
     list.innerHTML += `
       <div class="card">
-        <img src="${data.imageUrl || 'https://via.placeholder.com/300x200?text=No+Image'}" class="figure-img">
-        <div class="card-body">
-          <div class="title">${data.name}</div>
-          <div class="price">¥${data.price.toLocaleString()}</div>
-          <button onclick="deleteFigure('${d.id}')">削除</button>
-        </div>
-      </div>`;
+        <h3>${data.name}</h3>
+        <p>価格: ${data.price}</p>
+        ${data.imageUrl ? `<img src="${data.imageUrl}">` : ""}
+        <br>
+        <button class="delete-btn" onclick="deleteStock('${docItem.id}')">削除</button>
+      </div>
+    `;
   });
-
-  document.getElementById("totalValue").innerText =
-    "総資産: ¥" + total.toLocaleString();
 }
 
-window.deleteFigure = async function(id){
-  await deleteDoc(doc(db, "figures", id));
-  loadFigures();
-};
+window.deleteStock = async function(id) {
+  await deleteDoc(doc(db, "stocks", id));
+  loadStocks();
+}
+
+window.toggleDark = function() {
+  document.body.classList.toggle("dark");
+}
 
 </script>
+
+</body>
+</html>
