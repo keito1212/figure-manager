@@ -200,30 +200,35 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 let currentUser=null;
 
-const initialBrands=["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系")];
+const initialBrands=["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系)"];
 const initialPlaces=["未選択","Amazon","楽天市場","Yahoo!ショッピング","ヤフオク","ヤフーフリマ","メルカリ","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
 
 // ログイン/ログアウト
 window.login = async()=>{ await signInWithPopup(auth, provider);}
 window.logout = async()=>{ await signOut(auth); }
 
-onAuthStateChanged(auth,user=>{
+// onAuthStateChanged 内は async 関数呼び出しのみ
+onAuthStateChanged(auth, (user)=>{
   const userArea=document.getElementById("userArea");
-  if(user){
-    currentUser=user;
-    userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
-    document.getElementById("appArea").style.display="block";
-    document.getElementById("loginArea").style.display="none";
-    initSelects();
-    initModalSelects();
-    loadFigures();
-  }else{
+  if(!user){
     currentUser=null;
     userArea.innerHTML="";
     document.getElementById("appArea").style.display="none";
     document.getElementById("loginArea").style.display="block";
+  } else {
+    currentUser=user;
+    userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
+    document.getElementById("appArea").style.display="block";
+    document.getElementById("loginArea").style.display="none";
+    initializeAppAfterLogin(); // async 初期化関数
   }
 });
+
+async function initializeAppAfterLogin(){
+  initSelects();
+  initModalSelects();
+  await loadFigures();
+}
 
 function initSelects(){
   const brand=document.getElementById("brandSelect"); brand.innerHTML=""; initialBrands.forEach(b=>{ let o=document.createElement("option"); o.value=b; o.textContent=b; brand.appendChild(o); });
@@ -234,7 +239,7 @@ function initModalSelects(){
   const place=document.getElementById("modalPlaceSelect"); place.innerHTML=""; initialPlaces.forEach(p=>{ let o=document.createElement("option"); o.value=p; o.textContent=p; place.appendChild(o); });
 }
 
-// 追加
+// 商品追加
 window.addFigure=async function(){
   const name=document.getElementById("name").value.trim();
   const price=document.getElementById("price").value.trim();
@@ -264,7 +269,7 @@ window.addFigure=async function(){
   document.getElementById("purchaseDate").value="";
   document.getElementById("placeSelect").value="未選択";
   document.getElementById("statusSelect").value="owned";
-  loadFigures();
+  await loadFigures();
 }
 
 // 並べ替え・フィルター
@@ -275,11 +280,22 @@ window.addFigure=async function(){
 // モーダル制御
 const modal=document.getElementById("figureModal");
 let modalFigureId=null;
-function openModal(figure){ modalFigureId=figure.id; modal.style.display="flex"; document.getElementById("modalName").value=figure.name; document.getElementById("modalPrice").value=figure.price; document.getElementById("modalImageUrl").value=figure.imageUrl||""; document.getElementById("modalBrandSelect").value=figure.brand||"未選択"; document.getElementById("modalPurchaseDate").value=figure.purchaseDate||""; document.getElementById("modalPlaceSelect").value=figure.purchasePlace||"未選択"; document.getElementById("modalStatusSelect").value=figure.status||"owned"; document.getElementById("modalCurrentImage").src=figure.imageUrl||"https://via.placeholder.com/600x400?text=No+Image"; }
+function openModal(figure){ 
+  modalFigureId=figure.id; 
+  modal.style.display="flex"; 
+  document.getElementById("modalName").value=figure.name;
+  document.getElementById("modalPrice").value=figure.price;
+  document.getElementById("modalImageUrl").value=figure.imageUrl||"";
+  document.getElementById("modalBrandSelect").value=figure.brand||"未選択";
+  document.getElementById("modalPurchaseDate").value=figure.purchaseDate||"";
+  document.getElementById("modalPlaceSelect").value=figure.purchasePlace||"未選択";
+  document.getElementById("modalStatusSelect").value=figure.status||"owned";
+  document.getElementById("modalCurrentImage").src=figure.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
+}
 function closeModal(){ modal.style.display="none"; modalFigureId=null; }
 modal.onclick=function(e){ if(e.target===modal) closeModal(); }
 
-// 一覧表示
+// 商品一覧
 async function loadFigures(){
   const q=collection(db,"figures");
   const snapshot=await getDocs(q);
@@ -287,12 +303,12 @@ async function loadFigures(){
   list.innerHTML="";
   let total=0;
   let figures=snapshot.docs.map(d=>{ let data=d.data(); data.id=d.id; return data; }).filter(f=>f.uid===currentUser.uid);
+
   const ownedCheck=document.getElementById("ownedCheck").checked;
   const unownedCheck=document.getElementById("unownedCheck").checked;
   const soldCheck=document.getElementById("soldCheck").checked;
   figures=figures.filter(f=> (f.status==="owned"?ownedCheck:(f.status==="unowned"?unownedCheck:soldCheck)) );
 
-  // 並べ替え
   const sortVal=document.getElementById("sortSelect").value;
   figures.sort((a,b)=>{
     if(sortVal==="nameAsc") return a.name.localeCompare(b.name);
@@ -334,7 +350,7 @@ async function loadFigures(){
 
 // モーダル更新・削除
 document.getElementById("modalUpdate").onclick=async()=>{
-  if(!modalFigureId){ return; }
+  if(!modalFigureId) return;
   const name=document.getElementById("modalName").value.trim();
   const price=Number(document.getElementById("modalPrice").value);
   const imageUrl=document.getElementById("modalImageUrl").value.trim();
@@ -344,12 +360,15 @@ document.getElementById("modalUpdate").onclick=async()=>{
   const status=document.getElementById("modalStatusSelect").value;
   if(!name||!price){ alert("入力してください"); return; }
   await updateDoc(doc(db,"figures",modalFigureId),{name,price,imageUrl,brand,purchaseDate,purchasePlace,status});
-  alert("更新しました"); closeModal(); loadFigures();
+  alert("更新しました"); closeModal(); await loadFigures();
 }
+
 document.getElementById("modalDelete").onclick=async()=>{
-  if(modalFigureId && confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",modalFigureId)); alert("削除しました"); closeModal(); loadFigures(); }
+  if(modalFigureId && confirm("削除しますか？")){
+    await deleteDoc(doc(db,"figures",modalFigureId));
+    alert("削除しました"); closeModal(); await loadFigures();
+  }
 }
 </script>
-
 </body>
 </html>
