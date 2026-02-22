@@ -18,7 +18,7 @@ button.addBtn{ background:#e74c3c; color:white; }
 
 /* 状態フィルター */
 .filterBox{ margin:10px 0; }
-.filterBox label{ margin-right:10px; cursor:pointer; }
+.filterBox label{ margin-right:5px; cursor:pointer; }
 
 /* 並べ替え */
 .sortBox{ margin:10px 0; }
@@ -133,7 +133,7 @@ label{font-weight:bold; display:block; margin-top:10px;}
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, orderBy, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getFirestore, collection, addDoc, getDocs, doc, getDoc, updateDoc, deleteDoc, Timestamp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
@@ -144,7 +144,6 @@ const auth=getAuth(app);
 const provider=new GoogleAuthProvider();
 
 let currentUser=null;
-
 window.login=async()=>{ await signInWithPopup(auth, provider); }
 window.logout=async()=>{ await signOut(auth); }
 
@@ -213,7 +212,6 @@ async function loadFigures(){
   querySnapshot.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid!==currentUser.uid) return;
-    // 状態フィルター
     if(data.status==="owned"&&!filterOwned) return;
     if(data.status==="unowned"&&!filterUnowned) return;
     if(data.status==="sold"&&!filterSold) return;
@@ -221,7 +219,6 @@ async function loadFigures(){
     total+=data.price;
   });
 
-  // 並べ替え
   dataArr.sort((a,b)=>{
     if(sortVal==="name") return a.name.localeCompare(b.name);
     if(sortVal==="priceDesc") return b.price-a.price;
@@ -242,13 +239,12 @@ async function loadFigures(){
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
 }
 
-// 並べ替えやフィルター変更で即反映
 document.getElementById("sortSelect").onchange=loadFigures;
 document.getElementById("filterOwned").onchange=loadFigures;
 document.getElementById("filterUnowned").onchange=loadFigures;
 document.getElementById("filterSold").onchange=loadFigures;
 
-// popup モーダル
+// モーダル処理
 const modal=document.getElementById("figureModal");
 const modalBody=document.getElementById("modalBody");
 document.getElementById("modalClose").onclick=()=>{ modal.style.display="none"; };
@@ -262,6 +258,7 @@ async function openModal(id){
     <label>商品名</label><input id="modalName" value="${data.name}">
     <label>価格</label><input id="modalPrice" type="number" value="${data.price}" step="100">
     <label>画像URL</label><input id="modalImage" value="${data.imageUrl}">
+    <img id="modalImgPreview" src="${data.imageUrl||'https://via.placeholder.com/600x400?text=No+Image'}" style="width:100%; margin:10px 0; border-radius:5px;">
     <label>メーカー / ブランド</label><input id="modalBrand" value="${data.brand||""}">
     <label>購入日</label><input id="modalDate" type="date" value="${data.purchaseDate||""}">
     <label>購入場所</label><input id="modalPlace" value="${data.purchasePlace||""}">
@@ -277,6 +274,11 @@ async function openModal(id){
     </div>
   `;
   modal.style.display="flex";
+
+  document.getElementById("modalImage").oninput = ()=>{
+    const url=document.getElementById("modalImage").value;
+    document.getElementById("modalImgPreview").src=url||'https://via.placeholder.com/600x400?text=No+Image';
+  };
 
   document.getElementById("modalUpdate").onclick=async ()=>{
     const name=document.getElementById("modalName").value.trim();
