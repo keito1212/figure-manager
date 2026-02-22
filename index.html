@@ -1,199 +1,205 @@
 <!DOCTYPE html>
-<html>
+<html lang="ja">
 <head>
-  <meta charset="UTF-8">
-  <title>Stock App</title>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js"></script>
-  <script src="https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js"></script>
-  <style>
-    body {
-      font-family: Arial;
-      margin: 0;
-      background: #f4f6f9;
-    }
+<meta charset="UTF-8">
+<title>フィギュア管理</title>
 
-    .dark {
-      background: #1e1e1e;
-      color: white;
-    }
+<style>
+body{
+  font-family: Arial, sans-serif;
+  margin:0;
+  background:#f5f5f5;
+}
 
-    header {
-      display: flex;
-      justify-content: space-between;
-      padding: 15px 20px;
-      background: #111;
-      color: white;
-      align-items: center;
-    }
+header{
+  display:flex;
+  justify-content:space-between;
+  align-items:center;
+  padding:15px 25px;
+  background:white;
+  box-shadow:0 2px 5px rgba(0,0,0,0.1);
+}
 
-    .user-box {
-      display: flex;
-      align-items: center;
-      gap: 10px;
-    }
+.userBox{
+  display:flex;
+  align-items:center;
+  gap:10px;
+}
 
-    .user-box img {
-      width: 32px;
-      border-radius: 50%;
-    }
+.userBox img{
+  width:36px;
+  height:36px;
+  border-radius:50%;
+}
 
-    button {
-      padding: 6px 10px;
-      border: none;
-      cursor: pointer;
-      border-radius: 5px;
-    }
+.container{
+  padding:30px;
+}
 
-    .login-btn { background: #4285f4; color: white; }
-    .logout-btn { background: crimson; color: white; }
-    .dark-btn { background: #444; color: white; }
+.card{
+  background:white;
+  padding:15px;
+  margin-top:15px;
+  border-radius:10px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
 
-    .container {
-      padding: 20px;
-    }
+.card img{
+  width:100%;
+  max-height:250px;
+  object-fit:cover;
+  border-radius:8px;
+  margin-bottom:10px;
+}
 
-    .card {
-      background: white;
-      padding: 15px;
-      border-radius: 10px;
-      margin-bottom: 15px;
-      box-shadow: 0 3px 8px rgba(0,0,0,0.1);
-    }
-
-    .dark .card {
-      background: #2c2c2c;
-    }
-
-    .card img {
-      max-width: 100%;
-      border-radius: 8px;
-      margin-top: 10px;
-    }
-
-    .delete-btn {
-      background: crimson;
-      color: white;
-      margin-top: 10px;
-    }
-
-    input {
-      padding: 6px;
-      margin-right: 5px;
-    }
-  </style>
+button{
+  padding:6px 12px;
+  cursor:pointer;
+}
+</style>
 </head>
+
 <body>
 
 <header>
-  <h2>📈 Stock Manager</h2>
-  <div class="user-box" id="userBox">
-    <button class="login-btn" onclick="login()">Googleログイン</button>
-  </div>
+  <h2>フィギュア管理</h2>
+  <div id="userArea"></div>
 </header>
 
 <div class="container">
-  <button class="dark-btn" onclick="toggleDark()">🌙 ダークモード</button>
 
-  <h3>銘柄追加</h3>
-  <input id="name" placeholder="銘柄名">
-  <input id="price" placeholder="価格">
-  <input id="imageUrl" placeholder="画像URL">
-  <button onclick="addStock()">追加</button>
+  <div id="loginArea">
+    <button onclick="login()">Googleログイン</button>
+  </div>
 
-  <hr>
+  <div id="appArea" style="display:none;">
+    <input id="name" placeholder="商品名">
+    <input id="price" type="number" placeholder="価格">
+    <input id="imageUrl" placeholder="画像URL（任意）">
+    <button onclick="addFigure()">追加</button>
 
-  <div id="stockList"></div>
+    <h3 id="totalValue">総資産: ¥0</h3>
+    <div id="figureList"></div>
+  </div>
+
 </div>
 
 <script type="module">
 
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-app.js";
-import { getAuth, GoogleAuthProvider, signInWithPopup, signOut, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-auth.js";
-import { getFirestore, collection, addDoc, getDocs, deleteDoc, doc } from "https://www.gstatic.com/firebasejs/10.7.1/firebase-firestore.js";
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { 
+  getFirestore, collection, addDoc, getDocs, query, where 
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { 
+  getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
+} from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
 const firebaseConfig = {
-  apiKey: "ここにAPIキー",
-  authDomain: "ここにauthDomain",
-  projectId: "ここにprojectId",
+  apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
+  authDomain: "figure-manager-ee77e.firebaseapp.com",
+  projectId: "figure-manager-ee77e",
+  storageBucket: "figure-manager-ee77e.firebasestorage.app",
+  messagingSenderId: "869184722518",
+  appId: "1:869184722518:web:3c3c5cc645734707ec8df7"
 };
 
 const app = initializeApp(firebaseConfig);
-const auth = getAuth(app);
 const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
 
-window.login = async function() {
-  const provider = new GoogleAuthProvider();
+let currentUser = null;
+
+window.login = async function(){
   await signInWithPopup(auth, provider);
 }
 
-window.logout = async function() {
+window.logout = async function(){
   await signOut(auth);
 }
 
 onAuthStateChanged(auth, (user) => {
-  const userBox = document.getElementById("userBox");
+  const userArea = document.getElementById("userArea");
 
   if (user) {
-    userBox.innerHTML = `
-      <img src="${user.photoURL}">
-      <span>${user.displayName}</span>
-      <button class="logout-btn" onclick="logout()">ログアウト</button>
+    currentUser = user;
+
+    userArea.innerHTML = `
+      <div class="userBox">
+        <img src="${user.photoURL}">
+        <span>${user.displayName}</span>
+        <button onclick="logout()">ログアウト</button>
+      </div>
     `;
-    loadStocks();
+
+    document.getElementById("appArea").style.display = "block";
+    document.getElementById("loginArea").style.display = "none";
+    loadFigures();
+
   } else {
-    userBox.innerHTML = `<button class="login-btn" onclick="login()">Googleログイン</button>`;
-    document.getElementById("stockList").innerHTML = "";
+    userArea.innerHTML = "";
+    document.getElementById("appArea").style.display = "none";
+    document.getElementById("loginArea").style.display = "block";
   }
 });
 
-window.addStock = async function() {
-  const name = document.getElementById("name").value;
-  const price = document.getElementById("price").value;
-  const imageUrl = document.getElementById("imageUrl").value;
+window.addFigure = async function(){
 
-  if (!name) return alert("銘柄名を入力");
+  const name = document.getElementById("name").value.trim();
+  const price = document.getElementById("price").value.trim();
+  const imageUrl = document.getElementById("imageUrl").value.trim();
 
-  await addDoc(collection(db, "stocks"), {
+  if(!name || !price){
+    alert("入力してください");
+    return;
+  }
+
+  await addDoc(collection(db, "figures"), {
+    uid: currentUser.uid,
     name,
-    price,
-    imageUrl
+    price: Number(price),
+    imageUrl: imageUrl || "",
+    createdAt: new Date()
   });
 
   document.getElementById("name").value = "";
   document.getElementById("price").value = "";
   document.getElementById("imageUrl").value = "";
 
-  loadStocks();
+  loadFigures();
 }
 
-async function loadStocks() {
-  const querySnapshot = await getDocs(collection(db, "stocks"));
-  const list = document.getElementById("stockList");
-  list.innerHTML = "";
+async function loadFigures(){
 
-  querySnapshot.forEach((docItem) => {
-    const data = docItem.data();
+  const q = query(
+    collection(db, "figures"),
+    where("uid", "==", currentUser.uid)
+  );
+
+  const querySnapshot = await getDocs(q);
+  const list = document.getElementById("figureList");
+  list.innerHTML = "";
+  let total = 0;
+
+  querySnapshot.forEach((doc) => {
+    const data = doc.data();
+    total += data.price;
+
+    const imageSrc = data.imageUrl && data.imageUrl !== ""
+      ? data.imageUrl
+      : "https://via.placeholder.com/600x400?text=No+Image";
 
     list.innerHTML += `
       <div class="card">
-        <h3>${data.name}</h3>
-        <p>価格: ${data.price}</p>
-        ${data.imageUrl ? `<img src="${data.imageUrl}">` : ""}
-        <br>
-        <button class="delete-btn" onclick="deleteStock('${docItem.id}')">削除</button>
+        <img src="${imageSrc}">
+        <div><strong>${data.name}</strong></div>
+        <div>¥${data.price.toLocaleString()}</div>
       </div>
     `;
   });
-}
 
-window.deleteStock = async function(id) {
-  await deleteDoc(doc(db, "stocks", id));
-  loadStocks();
-}
-
-window.toggleDark = function() {
-  document.body.classList.toggle("dark");
+  document.getElementById("totalValue").innerText =
+    "総資産: ¥" + total.toLocaleString();
 }
 
 </script>
