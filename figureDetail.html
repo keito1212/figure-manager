@@ -5,12 +5,41 @@
 <title>フィギュア詳細</title>
 <style>
 body{ font-family: Arial, sans-serif; background:#f5f5f5; margin:0; }
-.container{ max-width:600px; margin:40px auto; background:white; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+.container{
+  max-width:600px;
+  margin:40px auto;
+  background:white;
+  padding:20px;
+  border-radius:8px;
+  box-shadow:0 4px 10px rgba(0,0,0,0.1);
+}
 h2{text-align:center; margin-bottom:20px;}
 label{font-weight:bold; display:block; margin-top:10px;}
-input,select{width:100%; padding:8px 10px; margin:5px 0; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;}
-img#currentImage{display:block; max-width:100%; margin:10px 0; border-radius:5px;}
-button{padding:8px 16px; border:none; border-radius:5px; cursor:pointer; margin-right:10px;}
+input,select{
+  width:100%;
+  padding:8px 10px;
+  margin:5px 0;
+  border-radius:5px;
+  border:1px solid #ccc;
+  box-sizing:border-box;
+  background-color:white;
+  color:#333;
+}
+img#currentImage{
+  display:block;
+  width:100%;
+  max-height:250px;
+  object-fit:cover;
+  margin:10px 0;
+  border-radius:5px;
+}
+button{
+  padding:8px 16px;
+  border:none;
+  border-radius:5px;
+  cursor:pointer;
+  margin-right:10px;
+}
 #updateBtn{background:#3498db;color:white;}
 #deleteBtn{background:#e74c3c;color:white;}
 #backBtn{background:#ccc;}
@@ -21,19 +50,33 @@ button{padding:8px 16px; border:none; border-radius:5px; cursor:pointer; margin-
 <div class="container">
 <h2>商品詳細</h2>
 
-<label>商品名</label><input id="name">
-<label>価格</label><input id="price" type="number" step="100">
-<label>画像URL</label><input id="imageUrl">
-<label>メーカー / ブランド</label><input id="brand">
-<label>購入日</label><input id="purchaseDate" type="date">
-<label>購入場所</label><input id="purchasePlace">
+<label>商品名</label>
+<input id="name">
+
+<label>価格</label>
+<input id="price" type="number" step="100">
+
+<label>画像URL</label>
+<input id="imageUrl">
+
+<label>メーカー / ブランド</label>
+<select id="brandSelect"></select>
+
+<label>購入日</label>
+<input id="purchaseDate" type="date">
+
+<label>購入場所</label>
+<select id="placeSelect"></select>
+
 <label>状態 / 保存状態</label>
 <select id="status">
   <option value="unowned">未所持</option>
   <option value="owned">所持</option>
   <option value="sold">売却済み</option>
 </select>
-<label>現在の画像</label><img id="currentImage" src="">
+
+<label>現在の画像</label>
+<img id="currentImage" src="">
 
 <div style="margin-top:20px;">
 <button id="updateBtn">更新</button>
@@ -47,11 +90,26 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
+const firebaseConfig={
+  apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
+  authDomain:"figure-manager-ee77e.firebaseapp.com",
+  projectId:"figure-manager-ee77e",
+  storageBucket:"figure-manager-ee77e.firebasestorage.app",
+  messagingSenderId:"869184722518",
+  appId:"1:869184722518:web:3c3c5cc645734707ec8df7"
+};
 
 const app=initializeApp(firebaseConfig);
 const db=getFirestore(app);
 const auth=getAuth(app);
+
+const initialBrands=[
+"未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"
+];
+
+const initialPlaces=[
+"未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","ヤフーフリマ","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"
+];
 
 const params=new URLSearchParams(window.location.search);
 const id=params.get("id");
@@ -59,24 +117,60 @@ if(!id){ alert("不正なアクセス"); window.location.href="index.html"; }
 
 let currentUser=null;
 
+// ドロップダウン初期化
+function initSelects(){
+  const brandSelect=document.getElementById("brandSelect");
+  initialBrands.forEach(b=>{
+    const opt=document.createElement("option");
+    opt.value=b;
+    opt.textContent=b;
+    brandSelect.appendChild(opt);
+  });
+
+  const placeSelect=document.getElementById("placeSelect");
+  initialPlaces.forEach(p=>{
+    const opt=document.createElement("option");
+    opt.value=p;
+    opt.textContent=p;
+    placeSelect.appendChild(opt);
+  });
+}
+
 onAuthStateChanged(auth,user=>{
-  if(!user){ alert("ログインしてください"); window.location.href="index.html"; }
-  else{ currentUser=user; loadFigure(); }
+  if(!user){
+    alert("ログインしてください");
+    window.location.href="index.html";
+  }else{
+    currentUser=user;
+    initSelects();
+    loadFigure();
+  }
 });
 
 async function loadFigure(){
   const docRef=doc(db,"figures",id);
   const docSnap=await getDoc(docRef);
-  if(!docSnap.exists()){ alert("商品が存在しません"); window.location.href="index.html"; return; }
+
+  if(!docSnap.exists()){
+    alert("商品が存在しません");
+    window.location.href="index.html";
+    return;
+  }
+
   const data=docSnap.data();
-  if(data.uid!==currentUser.uid){ alert("権限がありません"); window.location.href="index.html"; return; }
+
+  if(data.uid!==currentUser.uid){
+    alert("権限がありません");
+    window.location.href="index.html";
+    return;
+  }
 
   document.getElementById("name").value=data.name;
   document.getElementById("price").value=data.price;
   document.getElementById("imageUrl").value=data.imageUrl||"";
-  document.getElementById("brand").value=data.brand||"";
+  document.getElementById("brandSelect").value=data.brand||"未選択";
   document.getElementById("purchaseDate").value=data.purchaseDate||"";
-  document.getElementById("purchasePlace").value=data.purchasePlace||"";
+  document.getElementById("placeSelect").value=data.purchasePlace||"未選択";
   document.getElementById("status").value=data.status||"unowned";
   document.getElementById("currentImage").src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
 }
@@ -84,21 +178,37 @@ async function loadFigure(){
 document.getElementById("updateBtn").onclick=async ()=>{
   const name=document.getElementById("name").value.trim();
   const price=Number(document.getElementById("price").value);
-  const imageUrl=document.getElementById("imageUrl").value.trim();
-  const brand=document.getElementById("brand").value.trim();
-  const purchaseDate=document.getElementById("purchaseDate").value;
-  const purchasePlace=document.getElementById("purchasePlace").value.trim();
-  const status=document.getElementById("status").value;
-  if(!name||!price){ alert("入力してください"); return; }
-  await updateDoc(doc(db,"figures",id),{ name, price, imageUrl, brand, purchaseDate, purchasePlace, status });
-  alert("更新しました"); window.location.href="index.html";
-}
+
+  if(!name||!price){
+    alert("商品名と価格を入力してください");
+    return;
+  }
+
+  await updateDoc(doc(db,"figures",id),{
+    name,
+    price,
+    imageUrl:document.getElementById("imageUrl").value.trim(),
+    brand:document.getElementById("brandSelect").value,
+    purchaseDate:document.getElementById("purchaseDate").value,
+    purchasePlace:document.getElementById("placeSelect").value,
+    status:document.getElementById("status").value
+  });
+
+  alert("更新しました");
+  window.location.href="index.html";
+};
 
 document.getElementById("deleteBtn").onclick=async ()=>{
-  if(confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",id)); alert("削除しました"); window.location.href="index.html"; }
-}
+  if(confirm("削除しますか？")){
+    await deleteDoc(doc(db,"figures",id));
+    alert("削除しました");
+    window.location.href="index.html";
+  }
+};
 
-document.getElementById("backBtn").onclick=()=>{ window.location.href="index.html"; }
+document.getElementById("backBtn").onclick=()=>{
+  window.location.href="index.html";
+};
 </script>
 
 </body>
