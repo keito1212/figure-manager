@@ -166,13 +166,19 @@ onAuthStateChanged(auth, (user) => {
 
 window.addFigure = async function(){
 
-  const name = document.getElementById("name").value.trim();
-  const price = document.getElementById("price").value.trim();
-  const imageUrl = document.getElementById("imageUrl").value.trim();
+  let name = document.getElementById("name").value.trim();
+  let price = document.getElementById("price").value.trim();
+  let imageUrl = document.getElementById("imageUrl").value.trim();
 
   if(!name || !price){
     alert("入力してください");
     return;
+  }
+
+  // Gyazo URL 自動変換
+  if(imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/)) {
+    const match = imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/);
+    imageUrl = `https://i.gyazo.com/${match[1]}.png`;
   }
 
   await addDoc(collection(db, "figures"), {
