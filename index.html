@@ -69,7 +69,7 @@ button{
 
 .card img{
   width:100%;
-  aspect-ratio:1/1; /* 正方形っぽく */
+  aspect-ratio:1/1;
   object-fit:cover;
   border-radius:8px;
   margin-bottom:10px;
@@ -116,13 +116,13 @@ button{
 
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
 import { 
-  getFirestore, collection, addDoc, getDocs, query, doc, deleteDoc
+  getFirestore, collection, addDoc, getDocs, doc, deleteDoc, query 
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { 
   getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut
 } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// 🔹 Firebase設定
+// Firebase設定
 const firebaseConfig = {
   apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
   authDomain: "figure-manager-ee77e.firebaseapp.com",
@@ -139,7 +139,7 @@ const provider = new GoogleAuthProvider();
 
 let currentUser = null;
 
-// --- ログイン/ログアウト ---
+// ログイン/ログアウト
 window.login = async function(){
   await signInWithPopup(auth, provider);
 }
@@ -148,7 +148,7 @@ window.logout = async function(){
   await signOut(auth);
 }
 
-// --- 認証状態変更 ---
+// 認証状態変更
 onAuthStateChanged(auth, (user) => {
   const userArea = document.getElementById("userArea");
 
@@ -175,7 +175,7 @@ onAuthStateChanged(auth, (user) => {
   }
 });
 
-// --- フィギュア追加 ---
+// フィギュア追加
 window.addFigure = async function(){
 
   let name = document.getElementById("name").value.trim();
@@ -208,9 +208,9 @@ window.addFigure = async function(){
   loadFigures();
 }
 
-// --- フィギュア一覧読み込み ---
+// フィギュア一覧読み込み（全ドキュメント）
 async function loadFigures(){
-  const q = query(collection(db, "figures"));
+  const q = query(collection(db, "figures")); // ← UID条件なし
   const querySnapshot = await getDocs(q);
   const list = document.getElementById("figureList");
   list.innerHTML = "";
@@ -219,7 +219,7 @@ async function loadFigures(){
   querySnapshot.forEach((docSnap) => {
     const data = docSnap.data();
     const docId = docSnap.id;
-    console.log("読み込みdocId:", docId); // 🔹 デバッグ
+    console.log("読み込みdocId:", docId);
 
     total += data.price;
 
@@ -227,7 +227,6 @@ async function loadFigures(){
       ? data.imageUrl
       : "https://via.placeholder.com/600x400?text=No+Image";
 
-    // カード生成
     const card = document.createElement("div");
     card.className = "card";
 
@@ -245,16 +244,11 @@ async function loadFigures(){
     delBtn.textContent = "削除";
     delBtn.dataset.docId = docId;
     delBtn.addEventListener("click", async (e) => {
-      try {
-        const id = e.currentTarget.dataset.docId;
-        console.log("削除対象docId:", id); // 🔹 デバッグ
-        if(!confirm("本当に削除しますか？")) return;
-        await deleteDoc(doc(db, "figures", id));
-        loadFigures();
-      } catch (error) {
-        console.error("削除エラー:", error);
-        alert("削除できませんでした");
-      }
+      const id = e.currentTarget.dataset.docId;
+      console.log("削除対象docId:", id);
+      if(!confirm("本当に削除しますか？")) return;
+      await deleteDoc(doc(db, "figures", id));
+      loadFigures();
     });
 
     card.appendChild(img);
