@@ -4,37 +4,6 @@
 <meta charset="UTF-8">
 <title>MyFigureCollection</title>
 <style>
-body{font-family: Arial, sans-serif; margin:0; background:#f5f5f5; transition: background 0.3s, color 0.3s;}
-body.dark-mode{background:#1e1e1e; color:#f5f5f5;}
-header{display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
-body.dark-mode header{background:#2b2b2b;}
-.userBox{display:flex; align-items:center; gap:10px;}
-.userBox img{width:36px; height:36px; border-radius:50%;}
-.container{padding:30px;}
-input, select{margin-right:8px; padding:6px 10px; border-radius:5px; border:1px solid #ccc;}
-body.dark-mode input, body.dark-mode select{background:#333;color:#f5f5f5;border:1px solid #555;}
-button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
-#figureList{display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;}
-.card{background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; cursor:pointer;}
-body.dark-mode .card{background:#2b2b2b; box-shadow:0 4px 10px rgba(0,0,0,0.3);}
-.card img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px;}
-.card div.price{color:red; font-weight:bold;}
-/* モーダル */
-.modal{display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.5);}
-.modalContent{background:white; margin:50px auto; padding:20px; border-radius:8px; max-width:500px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
-body.dark-mode .modalContent{background:#2b2b2b; color:#f5f5f5;}
-.modalClose{float:right; font-size:24px; cursor:pointer;}
-.modalBody input, .modalBody select{width:100%; margin-top:5px; margin-bottom:10px;}
-.modalImgContainer{display:flex; justify-content:center; margin-top:10px;}
-.modalImgContainer img{max-width:100%; max-height:300px; border-radius:5px;}
-.statusFilters, .locationFilters, .monthFilter{margin:10px 0;}
-.statusFilters label, .locationFilters label{margin-right:10px;}
-.sortSelect{margin:10px 0; padding:6px;}
-.addBtn{background:#e74c3c; color:white;}
-.darkModeBtn{background:#3498db;color:white;margin-left:10px;}
-.stats{margin:10px 0;}
-.stats div{margin-bottom:5px;}
-  /* 共通 */
 body{font-family: Arial, sans-serif; margin:0; background:#f5f5f5;}
 header{display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
 .userBox{display:flex; align-items:center; gap:10px;}
@@ -43,9 +12,28 @@ header{display:flex; justify-content:space-between; align-items:center; padding:
 input, select{margin-right:8px; padding:6px 10px; border-radius:5px; border:1px solid #ccc;}
 button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 #figureList{display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px;}
-.card{background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;}
+.card{background:white; padding:10px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center;}
 .card img{width:100%; aspect-ratio:1/1; object-fit:cover; border-radius:8px; margin-bottom:10px;}
-
+.cardTitle{
+  font-weight:bold;
+  text-align:center;
+  display: -webkit-box;
+  -webkit-line-clamp: 3; /* 最大3行 */
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  width: 100%;
+}
+.cardTitle:hover{
+  overflow: visible;
+  white-space: normal;
+}
+.cardPrice{
+  color:red;
+  font-weight:bold;
+  text-align:center;
+  margin-top:5px;
+}
 /* モーダル */
 .modal{display:none; position:fixed; z-index:1000; left:0; top:0; width:100%; height:100%; overflow:auto; background:rgba(0,0,0,0.5);}
 .modalContent{background:white; margin:50px auto; padding:20px; border-radius:8px; max-width:500px; box-shadow:0 4px 10px rgba(0,0,0,0.2);}
@@ -57,20 +45,6 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 .statusFilters label{margin-right:10px;}
 .sortSelect{margin:10px 0; padding:6px;}
 .addBtn{background:#e74c3c; color:white;}
-
-/* --------------------
-スマホ向けレスポンシブ
--------------------- */
-@media screen and (max-width: 768px) {
-  header{flex-direction: column; align-items: flex-start; padding: 10px 15px;}
-  .container{padding:15px;}
-  input, select{margin:5px 0; width:100%;}
-  button{margin:5px 0; width:100%;}
-  #figureList{grid-template-columns: repeat(auto-fill, minmax(150px, 1fr)); gap:10px;}
-  .card{padding:10px;}
-  .modalContent{margin:20px 10px; width:calc(100% - 20px);}
-  .modalImgContainer img{max-height:200px;}
-}
 </style>
 </head>
 <body>
@@ -87,78 +61,65 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
   </div>
 
   <div id="appArea" style="display:none;">
-    <!-- ダークモード切替 -->
-    <button class="darkModeBtn" id="toggleDark">ダークモード切替</button>
-
     <!-- 商品追加フォーム -->
-    <div style="margin:10px 0;">
-      <input id="name" placeholder="商品名">
-      <input id="price" type="number" placeholder="価格" step="100">
-      <input id="imageUrl" placeholder="画像URL（任意）">
+    <input id="name" placeholder="商品名">
+    <input id="price" type="number" placeholder="価格" step="100">
+    <input id="imageUrl" placeholder="画像URL（任意）">
 
-      <select id="brand">
-        <option value="">未選択</option>
-        <option>グッドスマイルカンパニー</option>
-        <option>アルター</option>
-        <option>コトブキヤ</option>
-        <option>マックスファクトリー</option>
-        <option>バンダイ</option>
-        <option>メガハウス</option>
-        <option>ホビージャパン</option>
-        <option>タカラトミー</option>
-        <option>フリーイング</option>
-        <option>アニプレックス</option>
-        <option>ホビーラウンジ</option>
-        <option>ファット・カンパニー</option>
-        <option>セガプライズ</option>
-        <option>リボルブ</option>
-        <option>オーキッドシード</option>
-        <option>アイリス・オーヤマ</option>
-        <option>カプコン</option>
-        <option>バンプレスト</option>
-        <option>コナミ</option>
-        <option>アゾンインターナショナル</option>
-      </select>
+    <select id="brand">
+      <option value="">未選択</option>
+      <option>グッドスマイルカンパニー</option>
+      <option>アルター</option>
+      <option>コトブキヤ</option>
+      <option>マックスファクトリー</option>
+      <option>バンダイ</option>
+      <option>メガハウス</option>
+      <option>ホビージャパン</option>
+      <option>タカラトミー</option>
+      <option>フリーイング</option>
+      <option>アニプレックス</option>
+      <option>ホビーラウンジ</option>
+      <option>ファット・カンパニー</option>
+      <option>セガプライズ</option>
+      <option>リボルブ</option>
+      <option>オーキッドシード</option>
+      <option>アイリス・オーヤマ</option>
+      <option>カプコン</option>
+      <option>バンプレスト</option>
+      <option>コナミ</option>
+      <option>アゾンインターナショナル</option>
+    </select>
 
-      <input id="purchaseDate" type="date" placeholder="購入日">
+    <input id="purchaseDate" type="date" placeholder="購入日">
 
-      <select id="purchasePlace">
-        <option value="">未選択</option>
-        <option>Amazon</option>
-        <option>楽天市場</option>
-        <option>Yahoo!ショッピング</option>
-        <option>メルカリ</option>
-        <option>ヤフオク</option>
-        <option>ヤフーフリマ</option>
-        <option>あみあみ</option>
-        <option>フィギュア専門店</option>
-        <option>ホビーショップ</option>
-        <option>トイザらス</option>
-        <option>ソフマップ</option>
-        <option>イベント・ワンフェス</option>
-        <option>海外通販</option>
-        <option>リサイクルショップ</option>
-      </select>
+    <select id="purchasePlace">
+      <option value="">未選択</option>
+      <option>Amazon</option>
+      <option>楽天市場</option>
+      <option>Yahoo!ショッピング</option>
+      <option>メルカリ</option>
+      <option>ヤフオク</option>
+      <option>ヤフーフリマ</option>
+      <option>あみあみ</option>
+      <option>フィギュア専門店</option>
+      <option>ホビーショップ</option>
+      <option>トイザらス</option>
+      <option>ソフマップ</option>
+      <option>イベント・ワンフェス</option>
+      <option>海外通販</option>
+      <option>リサイクルショップ</option>
+    </select>
 
-      <select id="status">
-        <option value="owned">所持</option>
-        <option value="unowned">未所持</option>
-        <option value="sold">売却済み</option>
-      </select>
+    <select id="status">
+      <option value="owned">所持</option>
+      <option value="unowned">未所持</option>
+      <option value="sold">売却済み</option>
+    </select>
 
-      <button class="addBtn" onclick="addFigure()">追加</button>
-    </div>
+    <button class="addBtn" onclick="addFigure()">追加</button>
 
-    <!-- 合計価格表示 -->
-    <div class="stats">
-      <div id="totalValue">合計: ¥0</div>
-      <div id="ownedTotal">所持中合計: ¥0</div>
-      <div id="unownedTotal">未所持合計: ¥0</div>
-      <div id="soldTotal">売却済み合計: ¥0</div>
-      <div><a href="chart.html">購入履歴グラフを見る</a></div>
-    </div>
+    <h3 id="totalValue">合計: ¥0</h3>
 
-    <!-- 並べ替え -->
     <div class="sortSelect">
       <select id="sortSelect">
         <option value="name">名前順（昇順）</option>
@@ -169,40 +130,10 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
       </select>
     </div>
 
-    <!-- フィルター -->
     <div class="statusFilters">
       <label><input type="checkbox" id="filterOwned" checked>所持</label>
       <label><input type="checkbox" id="filterUnowned" checked>未所持</label>
       <label><input type="checkbox" id="filterSold" checked>売却済み</label>
-    </div>
-    <div class="locationFilters">
-      <label>購入場所絞り込み:
-        <select id="filterPlace">
-          <option value="">すべて</option>
-          <option>Amazon</option>
-          <option>楽天市場</option>
-          <option>Yahoo!ショッピング</option>
-          <option>メルカリ</option>
-          <option>ヤフオク</option>
-          <option>ヤフーフリマ</option>
-          <option>あみあみ</option>
-          <option>フィギュア専門店</option>
-          <option>ホビーショップ</option>
-          <option>トイザらス</option>
-          <option>ソフマップ</option>
-          <option>イベント・ワンフェス</option>
-          <option>海外通販</option>
-          <option>リサイクルショップ</option>
-        </select>
-      </label>
-    </div>
-    <div class="monthFilter">
-      <label>購入月絞り込み:
-        <select id="filterMonth">
-          <option value="">すべて</option>
-          <!-- 月は後でJSで生成 -->
-        </select>
-      </label>
     </div>
 
     <div id="figureList"></div>
@@ -230,18 +161,12 @@ const auth = getAuth(app);
 const provider = new GoogleAuthProvider();
 
 let currentUser = null;
+const brandOptions=[...document.getElementById("brand").options].map(o=>o.value).filter(v=>v);
+const placeOptions=[...document.getElementById("purchasePlace").options].map(o=>o.value).filter(v=>v);
 
 const modal = document.getElementById("figureModal");
 const modalClose = document.getElementById("modalClose");
 const modalBody = document.getElementById("modalBody");
-
-// ダークモード
-const darkModeBtn = document.getElementById("toggleDark");
-darkModeBtn.onclick = ()=>{
-  document.body.classList.toggle("dark-mode");
-  localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
-};
-if(localStorage.getItem("darkMode")==="true") document.body.classList.add("dark-mode");
 
 window.login = async()=>{ await signInWithPopup(auth, provider); }
 window.logout = async()=>{ await signOut(auth); }
@@ -253,7 +178,6 @@ onAuthStateChanged(auth, user=>{
     userArea.innerHTML=`<div class="userBox"><img src="${user.photoURL}"><span>${user.displayName}</span><button onclick="logout()">ログアウト</button></div>`;
     document.getElementById("appArea").style.display="block";
     document.getElementById("loginArea").style.display="none";
-    populateMonthFilter();
     loadFigures();
   }else{
     currentUser=null;
@@ -263,7 +187,6 @@ onAuthStateChanged(auth, user=>{
   }
 });
 
-// 商品追加
 window.addFigure=async()=>{
   const name=document.getElementById("name").value.trim();
   const price=Number(document.getElementById("price").value);
@@ -278,27 +201,17 @@ window.addFigure=async()=>{
   loadFigures();
 }
 
-// 月フィルター生成
-function populateMonthFilter(){
-  const monthSelect=document.getElementById("filterMonth");
-  const now=new Date();
-  for(let m=1;m<=12;m++){
-    const monthStr=m<10?`0${m}`:`${m}`;
-    monthSelect.innerHTML+=`<option value="${monthStr}">${monthStr}月</option>`;
-  }
-}
-
 // 並べ替え・フィルター変更時もリアルタイム
-["sortSelect","filterOwned","filterUnowned","filterSold","filterPlace","filterMonth"].forEach(id=>{
-  document.getElementById(id).addEventListener("change", loadFigures);
-});
+document.getElementById("sortSelect").addEventListener("change", loadFigures);
+document.getElementById("filterOwned").addEventListener("change", loadFigures);
+document.getElementById("filterUnowned").addEventListener("change", loadFigures);
+document.getElementById("filterSold").addEventListener("change", loadFigures);
 
-// 商品一覧表示
 async function loadFigures(){
   const querySnapshot = await getDocs(collection(db,"figures"));
   const list = document.getElementById("figureList");
   list.innerHTML="";
-  let total=0, ownedTotal=0, unownedTotal=0, soldTotal=0;
+  let total=0;
   const figures = [];
   querySnapshot.forEach(docSnap=>{
     const data=docSnap.data();
@@ -306,18 +219,14 @@ async function loadFigures(){
     figures.push({...data, id:docSnap.id});
   });
 
+  // 状態フィルター
   const fOwned=document.getElementById("filterOwned").checked;
   const fUnowned=document.getElementById("filterUnowned").checked;
   const fSold=document.getElementById("filterSold").checked;
-  const fPlace=document.getElementById("filterPlace").value;
-  const fMonth=document.getElementById("filterMonth").value;
-
   const filtered = figures.filter(f=>{
     if(f.status==="owned" && !fOwned) return false;
     if(f.status==="unowned" && !fUnowned) return false;
     if(f.status==="sold" && !fSold) return false;
-    if(fPlace && f.purchasePlace!==fPlace) return false;
-    if(fMonth && f.purchaseDate?.substring(5,7)!==fMonth) return false;
     return true;
   });
 
@@ -335,29 +244,24 @@ async function loadFigures(){
 
   filtered.forEach(f=>{
     total+=f.price;
-    if(f.status==="owned") ownedTotal+=f.price;
-    if(f.status==="unowned") unownedTotal+=f.price;
-    if(f.status==="sold") soldTotal+=f.price;
-
     const card=document.createElement("div"); card.className="card";
     const img=document.createElement("img"); img.src=f.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
-    const title=document.createElement("div"); title.innerHTML=`<strong>${f.name}</strong>`;
-    const price=document.createElement("div"); price.textContent=`¥${f.price.toLocaleString()}`; price.className="price";
+    const title=document.createElement("div"); 
+    title.className="cardTitle"; 
+    title.title=f.name;
+    title.textContent=f.name;
+    const price=document.createElement("div"); price.className="cardPrice";
+    price.textContent=`¥${f.price.toLocaleString()}`;
     card.appendChild(img); card.appendChild(title); card.appendChild(price);
     card.onclick=()=>openModal(f);
     list.appendChild(card);
   });
 
   document.getElementById("totalValue").innerText="合計: ¥"+total.toLocaleString();
-  document.getElementById("ownedTotal").innerText="所持中合計: ¥"+ownedTotal.toLocaleString();
-  document.getElementById("unownedTotal").innerText="未所持合計: ¥"+unownedTotal.toLocaleString();
-  document.getElementById("soldTotal").innerText="売却済み合計: ¥"+soldTotal.toLocaleString();
 }
 
-// モーダル表示
+// モーダル
 function openModal(f){
-  const brandOptions=[...document.getElementById("brand").options].map(o=>o.value).filter(v=>v);
-  const placeOptions=[...document.getElementById("purchasePlace").options].map(o=>o.value).filter(v=>v);
   modal.style.display="block";
   modalBody.innerHTML=`
     <label>商品名</label><input id="modalName" value="${f.name}">
@@ -403,7 +307,6 @@ function openModal(f){
 // モーダル閉じる
 modalClose.onclick=()=>{ modal.style.display="none"; }
 window.onclick=(e)=>{ if(e.target===modal) modal.style.display="none"; }
-
 </script>
 </body>
 </html>
