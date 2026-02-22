@@ -19,6 +19,7 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 .gridContainer { display:grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap:15px; }
 
 .card{ background:white; padding:15px; border-radius:10px; box-shadow:0 4px 10px rgba(0,0,0,0.1); display:flex; flex-direction:column; align-items:center; cursor:pointer; }
+.card img{ width:100%; height:200px; object-fit:cover; border-radius:5px; margin-bottom:8px; }
 .card.unowned{ background:#e0e0e0; }
 .card.owned{ background:#d4edda; }
 .card.sold{ background:#f8d7da; }
@@ -33,14 +34,13 @@ h4.stateHeader{ margin-top:25px; margin-bottom:10px; }
 }
 #detailModal label{ font-weight:bold; display:block; margin-top:10px; }
 #detailModal input, #detailModal select{ width:100%; padding:6px 8px; margin-top:5px; border-radius:5px; border:1px solid #ccc; box-sizing:border-box; background-color:white; color:#333; }
-#detailModal img{ display:block; width:100%; margin:10px 0; border-radius:5px; }
+#detailModal img{ display:block; width:100%; max-height:200px; margin:10px 0; border-radius:5px; object-fit:cover; }
 #detailModal .modalButtons{ text-align:right; margin-top:15px; }
 #detailModal button{ margin-left:5px; padding:6px 12px; border:none; border-radius:5px; cursor:pointer; }
 #updateBtn{ background:#3498db; color:white; }
 #deleteBtn{ background:#e74c3c; color:white; }
 #closeBtn{ background:#ccc; }
 
-/* チェックボックス横並び */
 .statusFilterContainer{
   display:flex;
   gap:15px;
@@ -172,9 +172,8 @@ const provider = new GoogleAuthProvider();
 let currentUser = null;
 let pendingId = null;
 
-// 初期データ
-const initialBrands = ["グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"];
-const initialPlaces = ["Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
+const initialBrands = ["未選択","グッドスマイルカンパニー","アルター","コトブキヤ","マックスファクトリー","バンダイ","メガハウス","ホビージャパン","タカラトミー","フリーイング","アニプレックス","ホビーラウンジ","ファット・カンパニー","セガプライズ","リボルブ","オーキッドシード","アイリス・オーヤマ（ミニチュア系）","カプコン（ゲーム系フィギュア）","バンプレスト（プライズ景品）","コナミ（限定フィギュア）","アゾンインターナショナル（ドール系）"];
+const initialPlaces = ["未選択","Amazon","楽天市場","Yahoo!ショッピング","メルカリ","ヤフオク","あみあみ","フィギュア専門店（アニメイトなど）","ホビーショップ","トイザらス","ソフマップ","イベント・ワンフェス","海外通販（AliExpress、HobbyLink Japan など）","リサイクルショップ"];
 
 window.login = async ()=>{ await signInWithPopup(auth, provider); }
 window.logout = async ()=>{ await signOut(auth); }
@@ -189,8 +188,11 @@ onAuthStateChanged(auth, async user=>{
 
     // 初期選択肢ロード
     const brandSelect=document.getElementById("brandSelect");
+    brandSelect.innerHTML="";
     initialBrands.forEach(b=>{ const opt=document.createElement("option"); opt.value=b; opt.textContent=b; brandSelect.appendChild(opt); });
+
     const placeSelect=document.getElementById("placeSelect");
+    placeSelect.innerHTML="";
     initialPlaces.forEach(p=>{ const opt=document.createElement("option"); opt.value=p; opt.textContent=p; placeSelect.appendChild(opt); });
 
     loadFigures();
@@ -206,11 +208,9 @@ onAuthStateChanged(auth, async user=>{
 document.getElementById("detailModal").onclick=(e)=>{ if(e.target.id==="detailModal") document.getElementById("detailModal").style.display="none"; }
 document.getElementById("closeBtn").onclick=()=>{ document.getElementById("detailModal").style.display="none"; }
 
-// チェックボックス / 並べ替えで自動更新
 document.getElementById("sortSelect").addEventListener("change",loadFigures);
 document.querySelectorAll(".statusFilter").forEach(cb=>cb.addEventListener("change",loadFigures));
 
-// 商品追加
 window.addFigure = async ()=>{
   const name=document.getElementById("name").value.trim();
   const price=document.getElementById("price").value.trim();
@@ -228,11 +228,12 @@ window.addFigure = async ()=>{
     createdAt: new Date()
   };
 
+  await addDoc(collection(db,"figures"), data);
+
   ["name","price","imageUrl","purchaseDate"].forEach(id=>{ const el=document.getElementById(id); if(el) el.value=""; });
   loadFigures();
 }
 
-// 商品一覧表示
 async function loadFigures(){
   const sort=document.getElementById("sortSelect").value;
   const statusFilters=[...document.querySelectorAll(".statusFilter:checked")].map(cb=>cb.value);
@@ -275,7 +276,6 @@ async function loadFigures(){
   document.getElementById("totalValue").innerText="総資産: ¥"+total.toLocaleString();
 }
 
-// モーダル
 function showModal(id,data){
   pendingId=id;
   document.getElementById("modalName").value=data.name;
@@ -289,7 +289,6 @@ function showModal(id,data){
   document.getElementById("detailModal").style.display="flex";
 }
 
-// 更新・削除
 document.getElementById("updateBtn").onclick=async ()=>{
   if(!pendingId) return;
   const data={
