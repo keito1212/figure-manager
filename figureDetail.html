@@ -2,326 +2,103 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>フィギュア管理</title>
-
+<title>フィギュア詳細</title>
 <style>
-body{
-  font-family: Arial, sans-serif;
-  margin:0;
-  background:#f5f5f5;
-}
-
-header{
-  display:flex;
-  justify-content:space-between;
-  align-items:center;
-  padding:15px 25px;
-  background:white;
-  box-shadow:0 2px 5px rgba(0,0,0,0.1);
-}
-
-.userBox{
-  display:flex;
-  align-items:center;
-  gap:10px;
-}
-
-.userBox img{
-  width:36px;
-  height:36px;
-  border-radius:50%;
-}
-
-.container{
-  padding:30px;
-}
-
-input{
-  margin-right:8px;
-  padding:6px 10px;
-  border-radius:5px;
-  border:1px solid #ccc;
-}
-
-button{
-  padding:6px 12px;
-  cursor:pointer;
-  border:none;
-  border-radius:5px;
-}
-
-/* 商品リストをグリッド表示 */
-#figureList {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));
-  gap: 15px;
-}
-
-.card{
-  background:white;
-  padding:15px;
-  border-radius:10px;
-  box-shadow:0 4px 10px rgba(0,0,0,0.1);
-  display:flex;
-  flex-direction:column;
-  align-items:center;
-  cursor:pointer;
-}
-
-.card img{
-  width:100%;
-  aspect-ratio:1/1;
-  object-fit:cover;
-  border-radius:8px;
-  margin-bottom:10px;
-}
-
-/* モーダル */
-#detailModal{
-  position: fixed;
-  top:0;
-  left:0;
-  width:100%;
-  height:100%;
-  background: rgba(0,0,0,0.5);
-  display: none;
-  justify-content: center;
-  align-items: center;
-  z-index: 1000;
-}
-
-#detailModal .modalContent{
-  background:white;
-  padding:20px;
-  border-radius:8px;
-  text-align:left;
-  width:400px;
-  max-width:90%;
-}
-
-#detailModal label{
-  font-weight:bold;
-  display:block;
-  margin-top:10px;
-}
-
-#detailModal input{
-  width:100%;
-  padding:6px 8px;
-  margin-top:5px;
-  border-radius:5px;
-  border:1px solid #ccc;
-  box-sizing:border-box;
-}
-
-#detailModal img{
-  display:block;
-  width:100%;
-  margin:10px 0;
-  border-radius:5px;
-}
-
-#detailModal .modalButtons{
-  text-align:right;
-  margin-top:15px;
-}
-
-#detailModal button{
-  margin-left:5px;
-  padding:6px 12px;
-  border:none;
-  border-radius:5px;
-  cursor:pointer;
-}
-
-#updateBtn{ background:#3498db; color:white;}
-#deleteBtn{ background:#e74c3c; color:white;}
-#closeBtn{ background:#ccc;}
+body{ font-family: Arial, sans-serif; background:#f5f5f5; margin:0; }
+.container{ max-width:600px; margin:40px auto; background:white; padding:20px; border-radius:8px; box-shadow:0 4px 10px rgba(0,0,0,0.1); }
+h2{text-align:center; margin-bottom:20px;}
+label{font-weight:bold; display:block; margin-top:10px;}
+input,select{width:100%; padding:8px 10px; margin:5px 0; border-radius:5px; border:1px solid #ccc; box-sizing:border-box;}
+img#currentImage{display:block; max-width:100%; margin:10px 0; border-radius:5px;}
+button{padding:8px 16px; border:none; border-radius:5px; cursor:pointer; margin-right:10px;}
+#updateBtn{background:#3498db;color:white;}
+#deleteBtn{background:#e74c3c;color:white;}
+#backBtn{background:#ccc;}
 </style>
 </head>
-
 <body>
 
-<header>
-  <h2>フィギュア管理</h2>
-  <div id="userArea"></div>
-</header>
-
 <div class="container">
+<h2>商品詳細</h2>
 
-  <div id="loginArea">
-    <button onclick="login()">Googleログイン</button>
-  </div>
+<label>商品名</label><input id="name">
+<label>価格</label><input id="price" type="number" step="100">
+<label>画像URL</label><input id="imageUrl">
+<label>メーカー / ブランド</label><input id="brand">
+<label>購入日</label><input id="purchaseDate" type="date">
+<label>購入場所</label><input id="purchasePlace">
+<label>状態 / 保存状態</label>
+<select id="status">
+  <option value="unowned">未所持</option>
+  <option value="owned">所持</option>
+  <option value="sold">売却済み</option>
+</select>
+<label>現在の画像</label><img id="currentImage" src="">
 
-  <div id="appArea" style="display:none;">
-    <input id="name" placeholder="商品名">
-    <input id="price" type="number" placeholder="価格" step="100">
-    <input id="imageUrl" placeholder="画像URL（任意）">
-    <button onclick="addFigure()">追加</button>
-
-    <h3 id="totalValue">総資産: ¥0</h3>
-    <div id="figureList"></div>
-  </div>
-
+<div style="margin-top:20px;">
+<button id="updateBtn">更新</button>
+<button id="deleteBtn">削除</button>
+<button id="backBtn">戻る</button>
 </div>
-
-<!-- 商品詳細モーダル -->
-<div id="detailModal">
-  <div class="modalContent">
-    <label>商品名</label>
-    <input id="modalName">
-    <label>価格</label>
-    <input id="modalPrice" type="number" step="100">
-    <label>画像URL</label>
-    <input id="modalImageUrl">
-    <label>現在の画像</label>
-    <img id="modalImage" src="" alt="現在の画像">
-    <div class="modalButtons">
-      <button id="updateBtn">更新</button>
-      <button id="deleteBtn">削除</button>
-      <button id="closeBtn">閉じる</button>
-    </div>
-  </div>
 </div>
 
 <script type="module">
 import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
-import { getFirestore, collection, addDoc, getDocs, query, deleteDoc, doc, updateDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
-import { getAuth, signInWithPopup, GoogleAuthProvider, onAuthStateChanged, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+import { getFirestore, doc, getDoc, updateDoc, deleteDoc } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// Firebase設定
-const firebaseConfig = {
-  apiKey: "AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",
-  authDomain: "figure-manager-ee77e.firebaseapp.com",
-  projectId: "figure-manager-ee77e",
-  storageBucket: "figure-manager-ee77e.firebasestorage.app",
-  messagingSenderId: "869184722518",
-  appId: "1:869184722518:web:3c3c5cc645734707ec8df7"
-};
+const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
 
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
 
-let currentUser = null;
-let pendingDeleteId = null;
+const params=new URLSearchParams(window.location.search);
+const id=params.get("id");
+if(!id){ alert("不正なアクセス"); window.location.href="index.html"; }
 
-// ログイン/ログアウト
-window.login = async function(){ await signInWithPopup(auth, provider); }
-window.logout = async function(){ await signOut(auth); }
+let currentUser=null;
 
-// 認証状態変更
-onAuthStateChanged(auth, (user) => {
-  const userArea = document.getElementById("userArea");
-
-  if (user) {
-    currentUser = user;
-    userArea.innerHTML = `<div class="userBox">
-        <img src="${user.photoURL}">
-        <span>${user.displayName}</span>
-        <button onclick="logout()">ログアウト</button>
-      </div>`;
-    document.getElementById("appArea").style.display = "block";
-    document.getElementById("loginArea").style.display = "none";
-    loadFigures();
-  } else {
-    currentUser = null;
-    userArea.innerHTML = "";
-    document.getElementById("appArea").style.display = "none";
-    document.getElementById("loginArea").style.display = "block";
-  }
+onAuthStateChanged(auth,user=>{
+  if(!user){ alert("ログインしてください"); window.location.href="index.html"; }
+  else{ currentUser=user; loadFigure(); }
 });
 
-// フィギュア追加
-window.addFigure = async function(){
-  const name = document.getElementById("name").value.trim();
-  const price = document.getElementById("price").value.trim();
-  let imageUrl = document.getElementById("imageUrl").value.trim();
+async function loadFigure(){
+  const docRef=doc(db,"figures",id);
+  const docSnap=await getDoc(docRef);
+  if(!docSnap.exists()){ alert("商品が存在しません"); window.location.href="index.html"; return; }
+  const data=docSnap.data();
+  if(data.uid!==currentUser.uid){ alert("権限がありません"); window.location.href="index.html"; return; }
 
-  if(!name || !price){ alert("入力してください"); return; }
-
-  const gyazoMatch = imageUrl.match(/^https:\/\/gyazo\.com\/([a-f0-9]{32})$/);
-  if(gyazoMatch){ imageUrl = `https://i.gyazo.com/${gyazoMatch[1]}.png`; }
-
-  await addDoc(collection(db, "figures"), { uid: currentUser.uid, name, price:Number(price), imageUrl:imageUrl||"", createdAt:new Date() });
-
-  document.getElementById("name").value="";
-  document.getElementById("price").value="";
-  document.getElementById("imageUrl").value="";
-  loadFigures();
+  document.getElementById("name").value=data.name;
+  document.getElementById("price").value=data.price;
+  document.getElementById("imageUrl").value=data.imageUrl||"";
+  document.getElementById("brand").value=data.brand||"";
+  document.getElementById("purchaseDate").value=data.purchaseDate||"";
+  document.getElementById("purchasePlace").value=data.purchasePlace||"";
+  document.getElementById("status").value=data.status||"unowned";
+  document.getElementById("currentImage").src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
 }
 
-// フィギュア一覧
-async function loadFigures(){
-  const q = query(collection(db, "figures"));
-  const querySnapshot = await getDocs(q);
-  const list = document.getElementById("figureList");
-  list.innerHTML = "";
-  let total = 0;
-
-  querySnapshot.forEach((docSnap)=>{
-    const data = docSnap.data();
-    if(data.uid !== currentUser.uid) return;
-    total += data.price;
-
-    const imageSrc = data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
-    const card = document.createElement("div");
-    card.className="card";
-
-    const img = document.createElement("img"); img.src=imageSrc;
-    const title = document.createElement("div"); title.innerHTML=`<strong>${data.name}</strong>`;
-    const price = document.createElement("div"); price.textContent=`¥${data.price.toLocaleString()}`;
-
-    // モーダル表示
-    card.onclick = ()=>showModal(docSnap.id, data);
-
-    // 削除ボタン
-    const deleteBtn = document.createElement("button");
-    deleteBtn.textContent="削除";
-    deleteBtn.style.marginTop="10px";
-    deleteBtn.style.backgroundColor="#e74c3c";
-    deleteBtn.style.color="white";
-    deleteBtn.onclick=(e)=>{ e.stopPropagation(); showModal(docSnap.id, data); }
-
-    card.append(img,title,price,deleteBtn);
-    list.appendChild(card);
-  });
-
-  document.getElementById("totalValue").innerText = "総資産: ¥"+total.toLocaleString();
-}
-
-// モーダル操作
-function showModal(id,data){
-  pendingDeleteId=id;
-  document.getElementById("modalName").value=data.name;
-  document.getElementById("modalPrice").value=data.price;
-  document.getElementById("modalImageUrl").value=data.imageUrl||"";
-  document.getElementById("modalImage").src=data.imageUrl||"https://via.placeholder.com/600x400?text=No+Image";
-  document.getElementById("detailModal").style.display="flex";
-}
-
-document.getElementById("closeBtn").onclick = ()=>{ document.getElementById("detailModal").style.display="none"; }
-
-document.getElementById("updateBtn").onclick = async ()=>{
-  if(!pendingDeleteId) return;
-  const name=document.getElementById("modalName").value.trim();
-  const price=Number(document.getElementById("modalPrice").value);
-  const imageUrl=document.getElementById("modalImageUrl").value.trim();
+document.getElementById("updateBtn").onclick=async ()=>{
+  const name=document.getElementById("name").value.trim();
+  const price=Number(document.getElementById("price").value);
+  const imageUrl=document.getElementById("imageUrl").value.trim();
+  const brand=document.getElementById("brand").value.trim();
+  const purchaseDate=document.getElementById("purchaseDate").value;
+  const purchasePlace=document.getElementById("purchasePlace").value.trim();
+  const status=document.getElementById("status").value;
   if(!name||!price){ alert("入力してください"); return; }
-  await updateDoc(doc(db,"figures",pendingDeleteId),{ name, price, imageUrl });
-  document.getElementById("detailModal").style.display="none";
-  loadFigures();
+  await updateDoc(doc(db,"figures",id),{ name, price, imageUrl, brand, purchaseDate, purchasePlace, status });
+  alert("更新しました"); window.location.href="index.html";
 }
 
-document.getElementById("deleteBtn").onclick = async ()=>{
-  if(!pendingDeleteId) return;
-  if(confirm("削除しますか？")){
-    await deleteDoc(doc(db,"figures",pendingDeleteId));
-    document.getElementById("detailModal").style.display="none";
-    loadFigures();
-  }
+document.getElementById("deleteBtn").onclick=async ()=>{
+  if(confirm("削除しますか？")){ await deleteDoc(doc(db,"figures",id)); alert("削除しました"); window.location.href="index.html"; }
 }
+
+document.getElementById("backBtn").onclick=()=>{ window.location.href="index.html"; }
 </script>
 
 </body>
