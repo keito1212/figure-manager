@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>資産管理ページ</title>
+<style>
+body{font-family: Arial, sans-serif; margin:0; background:#f5f5f5; transition: background 0.3s, color 0.3s;}
+body.dark-mode{background:#1e1e1e; color:#f5f5f5;}
+header{display:flex; justify-content:space-between; align-items:center; padding:15px 25px; background:white; box-shadow:0 2px 5px rgba(0,0,0,0.1);}
+body.dark-mode header{background:#2b2b2b;}
+nav a{margin-right:15px; text-decoration:none; color:#3498db;}
+.container{padding:30px;}
+input, select{margin-right:8px; padding:6px 10px; border-radius:5px; border:1px solid #ccc;}
+body.dark-mode input, body.dark-mode select{background:#333;color:#f5f5f5;border:1px solid #555;}
+button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
+.darkModeBtn{background:#3498db;color:white;margin-bottom:10px;}
+table{width:100%; border-collapse:collapse; margin-top:15px;}
+table, th, td{border:1px solid #ccc;}
+th, td{padding:8px; text-align:center;}
+</style>
+</head>
+<body>
+
+<header>
+  <h2>資産管理ページ</h2>
+  <div id="userArea"></div>
+</header>
+
+<nav>
+  <a href="index.html">フィギュア管理</a>
+  <a href="finance.html">資産管理</a>
+</nav>
+
+<div class="container">
+  <button class="darkModeBtn" id="toggleDark">ダークモード切替</button>
+
+  <h3>総資産</h3>
+  <div id="totalAssets">¥0</div>
+  <div id="figureValue">フィギュア所持中合計: ¥0</div>
+
+  <h3>収支表</h3>
+  <input id="incomeDesc" placeholder="内容">
+  <input id="incomeAmount" type="number" placeholder="金額">
+  <select id="incomeType">
+    <option value="income">収入</option>
+    <option value="expense">支出</option>
+  </select>
+  <button onclick="addTransaction()">追加</button>
+
+  <table id="transactionTable">
+    <thead>
+      <tr>
+        <th>内容</th>
+        <th>金額</th>
+        <th>種類</th>
+        <th>日付</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+  <h3>株資産管理</h3>
+  <input id="stockName" placeholder="銘柄">
+  <input id="stockQuantity" type="number" placeholder="数量">
+  <input id="stockPrice" type="number" placeholder="株価">
+  <input id="stockDate" type="date">
+  <button onclick="addStock()">追加</button>
+
+  <table id="stockTable">
+    <thead>
+      <tr>
+        <th>銘柄</th>
+        <th>数量</th>
+        <th>株価</th>
+        <th>合計</th>
+        <th>購入日</th>
+      </tr>
+    </thead>
+    <tbody></tbody>
+  </table>
+
+</div>
+
+<script type="module">
+import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-app.js";
+import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
+
+// Firebase設定
+const firebaseConfig = {apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
+const app = initializeApp(firebaseConfig);
+const db = getFirestore(app);
+const auth = getAuth(app);
+const provider = new GoogleAuthProvider();
+
+let currentUser = null;
+
+// ダークモード
+document.getElementById("toggleDark").onclick=()=>{
+  document.body.classList.toggle("dark-mode");
+  localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
+};
+if(localStorage.getItem("darkMode")==="true") document.body.classList.add("dark-mode");
+
+window.login=async()=>{ await signInWithPopup(auth, provider); }
+window.logout=async()=>{ await signOut(auth); }
+
+onAuthStateChanged(auth, async user=>{
+  const userArea=document.getElementById("userArea");
+  if(user){
+    currentUser=user;
+    userArea.innerHTML=`<div>${user.displayName} <button onclick="logout()">ログアウト</button></div>`;
+    await loadAssets();
+  }else{
+    currentUser=null;
+    userArea.innerHTML=`<button onclick="login()">Googleログイン</button>`;
+  }
+});
+
+// 収支追加
+window.addTransaction=async()=>{
+  const desc=document.getElementById("incomeDesc").value.trim();
+  const amount=Number(document.getElementById("incomeAmount").value);
+  const type=document.getElementById("incomeType").value;
+  if(!desc||!amount) return alert("内容と金額を入力");
+  await addDoc(collection(db,"transactions"),{ uid:currentUser.uid, desc, amount, type, date:new Date() });
+  document.getElementById("incomeDesc").value=""; document.getElementById("incomeAmount").value="";
+  loadAssets();
+}
+
+// 株追加
+window.addStock=async()=>{
+  const name=document.getElementById("stockName").value.trim();
+  const qty=Number(document.getElementById("stockQuantity").value);
+  const price=Number(document.getElementById("stockPrice").value);
+  const date=document.getElementById("stockDate").value;
+  if(!name||!qty||!price) return alert("銘柄・数量・株価を入力");
+  await addDoc(collection(db,"stocks"),{ uid:currentUser.uid, name, qty, price, date });
+  document.getElementById("stockName").value=""; document.getElementById("stockQuantity").value="";
+  document.getElementById("stockPrice").value=""; document.getElementById("stockDate").value="";
+  loadAssets();
+}
+
+// データ読み込み
+async function loadAssets(){
+  if(!currentUser) return;
+
+  // フィギュア所持中合計
+  const figuresSnap = await getDocs(collection(db,"figures"));
+  let figureTotal=0;
+  figuresSnap.forEach(docSnap=>{
+    const data=docSnap.data();
+    if(data.uid===currentUser.uid && data.status==="owned") figureTotal+=data.price;
+  });
+  document.getElementById("figureValue").innerText="フィギュア所持中合計: ¥"+figureTotal.toLocaleString();
+
+  // 収支
+  const transSnap = await getDocs(collection(db,"transactions"));
+  let total=0;
+  const tbody = document.querySelector("#transactionTable tbody");
+  tbody.innerHTML="";
+  transSnap.forEach(docSnap=>{
+    const data=docSnap.data();
+    if(data.uid!==currentUser.uid) return;
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>${data.desc}</td><td>¥${data.amount.toLocaleString()}</td><td>${data.type==="income"?"収入":"支出"}</td><td>${new Date(data.date.seconds*1000).toLocaleDateString()}</td>`;
+    tbody.appendChild(row);
+    total += data.type==="income"? data.amount : -data.amount;
+  });
+
+  // 株
+  const stockSnap = await getDocs(collection(db,"stocks"));
+  let stockTotal=0;
+  const stockTbody = document.querySelector("#stockTable tbody");
+  stockTbody.innerHTML="";
+  stockSnap.forEach(docSnap=>{
+    const data=docSnap.data();
+    if(data.uid!==currentUser.uid) return;
+    const totalPrice=data.qty*data.price;
+    stockTotal += totalPrice;
+    const row=document.createElement("tr");
+    row.innerHTML=`<td>${data.name}</td><td>${data.qty}</td><td>¥${data.price.toLocaleString()}</td><td>¥${totalPrice.toLocaleString()}</td><td>${data.date||""}</td>`;
+    stockTbody.appendChild(row);
+  });
+
+  document.getElementById("totalAssets").innerText="総資産: ¥"+(figureTotal+stockTotal+total).toLocaleString();
+}
+</script>
+
+</body>
+</html>
