@@ -2,7 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<title>資産管理ページ</title>
+<title>完全版資産管理ページ</title>
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.css">
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/fullcalendar@6.1.8/main.min.js"></script>
 <style>
 body{font-family: Arial, sans-serif; margin:0; background:#f5f5f5; transition: background 0.3s, color 0.3s;}
 body.dark-mode{background:#1e1e1e; color:#f5f5f5;}
@@ -17,12 +20,14 @@ button{padding:6px 12px; cursor:pointer; border:none; border-radius:5px;}
 table{width:100%; border-collapse:collapse; margin-top:15px;}
 table, th, td{border:1px solid #ccc;}
 th, td{padding:8px; text-align:center;}
+h3{margin-top:40px;}
+#calendar{max-width:900px; margin-top:20px;}
 </style>
 </head>
 <body>
 
 <header>
-  <h2>資産管理ページ</h2>
+  <h2>完全版資産管理</h2>
   <div id="userArea"></div>
 </header>
 
@@ -38,28 +43,28 @@ th, td{padding:8px; text-align:center;}
   <div id="totalAssets">¥0</div>
   <div id="figureValue">フィギュア所持中合計: ¥0</div>
 
-  <h3>収支表</h3>
-  <input id="incomeDesc" placeholder="内容">
-  <input id="incomeAmount" type="number" placeholder="金額">
-  <select id="incomeType">
+  <!-- 入出金（家計簿） -->
+  <h3>入出金管理</h3>
+  <input id="transactionDesc" placeholder="内容">
+  <input id="transactionAmount" type="number" placeholder="金額">
+  <select id="transactionType">
     <option value="income">収入</option>
     <option value="expense">支出</option>
   </select>
+  <select id="transactionCategory">
+    <option value="食費">食費</option>
+    <option value="交通">交通</option>
+    <option value="趣味">趣味</option>
+    <option value="光熱費">光熱費</option>
+    <option value="その他">その他</option>
+  </select>
+  <input type="date" id="transactionDate">
   <button onclick="addTransaction()">追加</button>
 
-  <table id="transactionTable">
-    <thead>
-      <tr>
-        <th>内容</th>
-        <th>金額</th>
-        <th>種類</th>
-        <th>日付</th>
-      </tr>
-    </thead>
-    <tbody></tbody>
-  </table>
+  <canvas id="expenseChart" style="max-width:600px; margin-top:20px;"></canvas>
 
-  <h3>株資産管理</h3>
+  <!-- 株・資産管理 -->
+  <h3>株・資産管理</h3>
   <input id="stockName" placeholder="銘柄">
   <input id="stockQuantity" type="number" placeholder="数量">
   <input id="stockPrice" type="number" placeholder="株価">
@@ -79,6 +84,13 @@ th, td{padding:8px; text-align:center;}
     <tbody></tbody>
   </table>
 
+  <!-- 資産推移 -->
+  <h3>資産推移</h3>
+  <canvas id="assetChart" style="max-width:800px;"></canvas>
+
+  <!-- カレンダー表示 -->
+  <h3>カレンダー</h3>
+  <div id="calendar"></div>
 </div>
 
 <script type="module">
@@ -86,46 +98,49 @@ import { initializeApp } from "https://www.gstatic.com/firebasejs/12.9.0/firebas
 import { getFirestore, collection, addDoc, getDocs } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-firestore.js";
 import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from "https://www.gstatic.com/firebasejs/12.9.0/firebase-auth.js";
 
-// Firebase設定
-const firebaseConfig = {apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
-const app = initializeApp(firebaseConfig);
-const db = getFirestore(app);
-const auth = getAuth(app);
-const provider = new GoogleAuthProvider();
+const firebaseConfig={apiKey:"AIzaSyBTDGPENSTpnJNDobkMCt5DPWsIFYDCeoQ",authDomain:"figure-manager-ee77e.firebaseapp.com",projectId:"figure-manager-ee77e",storageBucket:"figure-manager-ee77e.firebasestorage.app",messagingSenderId:"869184722518",appId:"1:869184722518:web:3c3c5cc645734707ec8df7"};
+const app=initializeApp(firebaseConfig);
+const db=getFirestore(app);
+const auth=getAuth(app);
+const provider=new GoogleAuthProvider();
 
-let currentUser = null;
+let currentUser=null;
+let expenseChart=null, assetChart=null;
 
-// ダークモード
 document.getElementById("toggleDark").onclick=()=>{
   document.body.classList.toggle("dark-mode");
   localStorage.setItem("darkMode", document.body.classList.contains("dark-mode"));
 };
 if(localStorage.getItem("darkMode")==="true") document.body.classList.add("dark-mode");
 
-window.login=async()=>{ await signInWithPopup(auth, provider); }
-window.logout=async()=>{ await signOut(auth); }
+window.login=async()=>{await signInWithPopup(auth,provider);}
+window.logout=async()=>{await signOut(auth);}
 
 onAuthStateChanged(auth, async user=>{
   const userArea=document.getElementById("userArea");
   if(user){
     currentUser=user;
     userArea.innerHTML=`<div>${user.displayName} <button onclick="logout()">ログアウト</button></div>`;
-    await loadAssets();
+    await loadData();
   }else{
     currentUser=null;
     userArea.innerHTML=`<button onclick="login()">Googleログイン</button>`;
   }
 });
 
-// 収支追加
+// 入出金追加
 window.addTransaction=async()=>{
-  const desc=document.getElementById("incomeDesc").value.trim();
-  const amount=Number(document.getElementById("incomeAmount").value);
-  const type=document.getElementById("incomeType").value;
-  if(!desc||!amount) return alert("内容と金額を入力");
-  await addDoc(collection(db,"transactions"),{ uid:currentUser.uid, desc, amount, type, date:new Date() });
-  document.getElementById("incomeDesc").value=""; document.getElementById("incomeAmount").value="";
-  loadAssets();
+  const desc=document.getElementById("transactionDesc").value.trim();
+  const amount=Number(document.getElementById("transactionAmount").value);
+  const type=document.getElementById("transactionType").value;
+  const category=document.getElementById("transactionCategory").value;
+  const date=document.getElementById("transactionDate").value;
+  if(!desc||!amount||!date) return alert("内容・金額・日付を入力");
+  await addDoc(collection(db,"transactions"),{uid:currentUser.uid,desc,amount,type,category,date:new Date(date)});
+  document.getElementById("transactionDesc").value="";
+  document.getElementById("transactionAmount").value="";
+  document.getElementById("transactionDate").value="";
+  loadData();
 }
 
 // 株追加
@@ -134,58 +149,102 @@ window.addStock=async()=>{
   const qty=Number(document.getElementById("stockQuantity").value);
   const price=Number(document.getElementById("stockPrice").value);
   const date=document.getElementById("stockDate").value;
-  if(!name||!qty||!price) return alert("銘柄・数量・株価を入力");
-  await addDoc(collection(db,"stocks"),{ uid:currentUser.uid, name, qty, price, date });
-  document.getElementById("stockName").value=""; document.getElementById("stockQuantity").value="";
-  document.getElementById("stockPrice").value=""; document.getElementById("stockDate").value="";
-  loadAssets();
+  if(!name||!qty||!price||!date) return alert("銘柄・数量・株価・日付を入力");
+  await addDoc(collection(db,"stocks"),{uid:currentUser.uid,name,qty,price,date:new Date(date)});
+  document.getElementById("stockName").value="";
+  document.getElementById("stockQuantity").value="";
+  document.getElementById("stockPrice").value="";
+  document.getElementById("stockDate").value="";
+  loadData();
 }
 
 // データ読み込み
-async function loadAssets(){
+async function loadData(){
   if(!currentUser) return;
 
   // フィギュア所持中合計
-  const figuresSnap = await getDocs(collection(db,"figures"));
+  const figureSnap=await getDocs(collection(db,"figures"));
   let figureTotal=0;
-  figuresSnap.forEach(docSnap=>{
+  figureSnap.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid===currentUser.uid && data.status==="owned") figureTotal+=data.price;
   });
   document.getElementById("figureValue").innerText="フィギュア所持中合計: ¥"+figureTotal.toLocaleString();
 
   // 収支
-  const transSnap = await getDocs(collection(db,"transactions"));
-  let total=0;
-  const tbody = document.querySelector("#transactionTable tbody");
-  tbody.innerHTML="";
+  const transSnap=await getDocs(collection(db,"transactions"));
+  const transactions=[];
+  let cashTotal=0;
+  const categoryTotals={};
   transSnap.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid!==currentUser.uid) return;
-    const row=document.createElement("tr");
-    row.innerHTML=`<td>${data.desc}</td><td>¥${data.amount.toLocaleString()}</td><td>${data.type==="income"?"収入":"支出"}</td><td>${new Date(data.date.seconds*1000).toLocaleDateString()}</td>`;
-    tbody.appendChild(row);
-    total += data.type==="income"? data.amount : -data.amount;
+    transactions.push(data);
+    const amt=data.type==="income"?data.amount:-data.amount;
+    cashTotal+=amt;
+    if(data.type==="expense") categoryTotals[data.category]=(categoryTotals[data.category]||0)+data.amount;
+  });
+
+  // 円グラフ更新
+  const ctx=document.getElementById("expenseChart").getContext("2d");
+  if(expenseChart) expenseChart.destroy();
+  expenseChart=new Chart(ctx,{
+    type:'pie',
+    data:{
+      labels:Object.keys(categoryTotals),
+      datasets:[{data:Object.values(categoryTotals), backgroundColor:['#f39c12','#e74c3c','#2ecc71','#3498db','#9b59b6']}]
+    },
+    options:{plugins:{title:{display:true,text:'カテゴリー別支出'}}}
   });
 
   // 株
-  const stockSnap = await getDocs(collection(db,"stocks"));
+  const stockSnap=await getDocs(collection(db,"stocks"));
   let stockTotal=0;
-  const stockTbody = document.querySelector("#stockTable tbody");
+  const stockTbody=document.querySelector("#stockTable tbody");
   stockTbody.innerHTML="";
   stockSnap.forEach(docSnap=>{
     const data=docSnap.data();
     if(data.uid!==currentUser.uid) return;
     const totalPrice=data.qty*data.price;
-    stockTotal += totalPrice;
+    stockTotal+=totalPrice;
     const row=document.createElement("tr");
-    row.innerHTML=`<td>${data.name}</td><td>${data.qty}</td><td>¥${data.price.toLocaleString()}</td><td>¥${totalPrice.toLocaleString()}</td><td>${data.date||""}</td>`;
+    row.innerHTML=`<td>${data.name}</td><td>${data.qty}</td><td>¥${data.price.toLocaleString()}</td><td>¥${totalPrice.toLocaleString()}</td><td>${data.date.toDate().toLocaleDateString()}</td>`;
     stockTbody.appendChild(row);
   });
 
-  document.getElementById("totalAssets").innerText="総資産: ¥"+(figureTotal+stockTotal+total).toLocaleString();
+  // 総資産
+  const totalAssets=cashTotal+stockTotal+figureTotal;
+  document.getElementById("totalAssets").innerText="総資産: ¥"+totalAssets.toLocaleString();
+
+  // 資産推移グラフ（例：月ごと）
+  const monthTotals={};
+  transactions.forEach(t=>{
+    const m=new Date(t.date.seconds*1000).getMonth()+1;
+    monthTotals[m]=(monthTotals[m]||0)+(t.type==="income"?t.amount:-t.amount);
+  });
+  stockSnap.forEach(s=>{
+    const m=new Date(s.data().date.seconds*1000).getMonth()+1;
+    monthTotals[m]=(monthTotals[m]||0)+(s.data().qty*s.data().price);
+  });
+  const months=Array.from({length:12},(_,i)=>i+1);
+  const assetValues=months.map(m=>monthTotals[m]||0);
+  const assetCtx=document.getElementById("assetChart").getContext("2d");
+  if(assetChart) assetChart.destroy();
+  assetChart=new Chart(assetCtx,{
+    type:'bar',
+    data:{labels:months.map(m=>m+'月'), datasets:[{label:'資産推移', data:assetValues, backgroundColor:'#3498db'}]},
+    options:{plugins:{title:{display:true,text:'月ごとの資産推移'}}}
+  });
+
+  // カレンダー表示
+  const calendarEl=document.getElementById('calendar');
+  calendarEl.innerHTML="";
+  const calendar=new FullCalendar.Calendar(calendarEl,{initialView:'dayGridMonth',height:500,events:[
+    ...transactions.map(t=>({title:`${t.type==="income"?"収入":"支出"}:${t.amount}`,start:new Date(t.date.seconds*1000)})),
+    ...stockSnap.docs.filter(s=>s.data().uid===currentUser.uid).map(s=>({title:`株:${s.data().name}¥${(s.data().qty*s.data().price).toLocaleString()}`,start:new Date(s.data().date.seconds*1000)}))
+  ]});
+  calendar.render();
 }
 </script>
-
 </body>
 </html>
